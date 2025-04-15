@@ -5,6 +5,11 @@ const Application = require('../models/Application');
 
 // Middleware to check if user is admin
 const isAdmin = async (req, res, next) => {
+  console.log('Checking admin status:', {
+    userId: req.user._id,
+    userRole: req.user.role
+  });
+  
   if (req.user && req.user.role === 'admin') {
     next();
   } else {
@@ -15,14 +20,16 @@ const isAdmin = async (req, res, next) => {
 // Get all applications (admin only)
 router.get('/applications', auth, isAdmin, async (req, res) => {
   try {
-    console.log('Fetching all applications for admin');
-    const applications = await Application.find()
+    console.log('Admin fetching all applications');
+    const applications = await Application.find({})  // Explicitly use empty filter
       .populate('userId', 'email firstName lastName')
+      .populate('meeting', 'name')
       .sort('-createdAt');
-    console.log(`Found ${applications.length} applications`);
+    
+    console.log(`Found ${applications.length} applications total`);
     res.json(applications);
   } catch (error) {
-    console.error('Error fetching applications:', error);
+    console.error('Error fetching admin applications:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

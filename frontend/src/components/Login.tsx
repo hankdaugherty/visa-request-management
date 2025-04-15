@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../utils/api';
 
 export default function Login() {
@@ -32,7 +32,7 @@ export default function Login() {
       //   userRole: localStorage.getItem('userRole')
       // });
 
-      navigate('/dashboard');
+      navigate('/');
     } catch (error) {
       console.error('Login error:', error);
       setError('Invalid email or password');
@@ -48,6 +48,12 @@ export default function Login() {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Sign in to your account
           </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Or{' '}
+            <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
+              register for a new account
+            </Link>
+          </p>
         </div>
         {error && (
           <div className="rounded-md bg-red-50 p-4">

@@ -1,27 +1,32 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import Header from './Header';
+import { applications as applicationsApi } from '../utils/api';
 
 export default function AdminDashboard() {
-  const [applications, setApplications] = useState([]);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [selectedMeeting, setSelectedMeeting] = useState('Dallas 2025');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+  const location = useLocation();
+
+  const meetings = ['Dallas 2025', 'Calgary 2026'];
+
+  // Filter applications based on selected meeting
+  const filteredApplications = applications.filter(app => app.meeting === selectedMeeting);
+
+  // Calculate statistics for the selected meeting
+  const stats = {
+    total: applications.length,
+    pending: applications.filter(app => app.status.toLowerCase() === 'pending').length,
+    approved: applications.filter(app => app.status.toLowerCase() === 'complete').length
+  };
 
   useEffect(() => {
-    const fetchApplications = async () => {
+    const getApplications = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/applications`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch applications');
-        }
-        
-        const data = await response.json();
+        const data = await applicationsApi.getAllForAdmin();
+        console.log('Fetched applications:', data);
         setApplications(data);
       } catch (err) {
         setError(err.message);
@@ -29,9 +34,15 @@ export default function AdminDashboard() {
         setLoading(false);
       }
     };
-
-    fetchApplications();
+    getApplications();
   }, []);
+
+  // Calculate statistics
+  const totalApplications = applications.length;
+  const pendingReview = applications.filter(app => app.status.toLowerCase() === 'pending').length;
+  const approved = applications.filter(app => app.status.toLowerCase() === 'approved').length;
+
+  console.log('Total:', totalApplications, 'Pending:', pendingReview, 'Approved:', approved); // Log the counts
 
   const handleEdit = async (appId, field, value) => {
     try {
@@ -58,58 +69,45 @@ export default function AdminDashboard() {
   return (
     <>
       <Header />
+      <div className="bg-white shadow">
+        <div className="container mx-auto px-4">
+          <div className="flex space-x-8 py-4">
+            <Link
+              to="/admin"
+              className={`px-3 py-2 rounded-md text-sm font-medium ${
+                location.pathname === '/admin'
+                  ? 'bg-gray-900 text-white'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              Applications
+            </Link>
+            <Link
+              to="/admin/meetings"
+              className={`px-3 py-2 rounded-md text-sm font-medium ${
+                location.pathname === '/admin/meetings'
+                  ? 'bg-gray-900 text-white'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              Manage Meetings
+            </Link>
+            <Link
+              to="/admin/users"
+              className={`px-3 py-2 rounded-md text-sm font-medium ${
+                location.pathname === '/admin/users'
+                  ? 'bg-gray-900 text-white'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              Manage Users
+            </Link>
+          </div>
+        </div>
+      </div>
       <main className="bg-[#F9FAFB] min-h-screen">
         <div className="container mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
-          
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold">All Applications</h2>
-            </div>
-            
-            {loading ? (
-              <div className="p-6">Loading...</div>
-            ) : error ? (
-              <div className="p-6 text-red-600">{error}</div>
-            ) : (
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">User</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Meeting</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Name</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Status</th>
-                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {applications.map(app => (
-                    <tr key={app._id}>
-                      <td className="px-6 py-4 text-sm">{app.userId.email}</td>
-                      <td className="px-6 py-4 text-sm">{app.meeting}</td>
-                      <td className="px-6 py-4 text-sm">{`${app.firstName} ${app.lastName}`}</td>
-                      <td className="px-6 py-4 text-sm">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                          ${app.status === 'approved' ? 'bg-green-100 text-green-800' :
-                            app.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                              'bg-yellow-100 text-yellow-800'}`}>
-                          {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <button
-                          onClick={() => navigate(`/admin/applications/${app._id}`)}
-                          className="text-indigo-600 hover:text-indigo-900"
-                        >
-                          View Details
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+          <Outlet />
         </div>
       </main>
     </>

@@ -1,21 +1,257 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { applications } from '../utils/api';
+import { applications, meetings as meetingsApi } from '../utils/api';
 import Header from './Header';
 
 const states = [
   { value: '', label: 'Select State' },
+  { value: 'AL', label: 'Alabama' },
+  { value: 'AK', label: 'Alaska' },
+  { value: 'AZ', label: 'Arizona' },
+  { value: 'AR', label: 'Arkansas' },
   { value: 'CA', label: 'California' },
+  { value: 'CO', label: 'Colorado' },
+  { value: 'CT', label: 'Connecticut' },
+  { value: 'DE', label: 'Delaware' },
+  { value: 'FL', label: 'Florida' },
+  { value: 'GA', label: 'Georgia' },
+  { value: 'HI', label: 'Hawaii' },
+  { value: 'ID', label: 'Idaho' },
+  { value: 'IL', label: 'Illinois' },
+  { value: 'IN', label: 'Indiana' },
+  { value: 'IA', label: 'Iowa' },
+  { value: 'KS', label: 'Kansas' },
+  { value: 'KY', label: 'Kentucky' },
+  { value: 'LA', label: 'Louisiana' },
+  { value: 'ME', label: 'Maine' },
+  { value: 'MD', label: 'Maryland' },
+  { value: 'MA', label: 'Massachusetts' },
+  { value: 'MI', label: 'Michigan' },
+  { value: 'MN', label: 'Minnesota' },
+  { value: 'MS', label: 'Mississippi' },
+  { value: 'MO', label: 'Missouri' },
+  { value: 'MT', label: 'Montana' },
+  { value: 'NE', label: 'Nebraska' },
+  { value: 'NV', label: 'Nevada' },
+  { value: 'NH', label: 'New Hampshire' },
+  { value: 'NJ', label: 'New Jersey' },
+  { value: 'NM', label: 'New Mexico' },
+  { value: 'NY', label: 'New York' },
+  { value: 'NC', label: 'North Carolina' },
+  { value: 'ND', label: 'North Dakota' },
+  { value: 'OH', label: 'Ohio' },
+  { value: 'OK', label: 'Oklahoma' },
+  { value: 'OR', label: 'Oregon' },
+  { value: 'PA', label: 'Pennsylvania' },
+  { value: 'RI', label: 'Rhode Island' },
+  { value: 'SC', label: 'South Carolina' },
+  { value: 'SD', label: 'South Dakota' },
+  { value: 'TN', label: 'Tennessee' },
   { value: 'TX', label: 'Texas' },
-  // Add more states as needed
+  { value: 'UT', label: 'Utah' },
+  { value: 'VT', label: 'Vermont' },
+  { value: 'VA', label: 'Virginia' },
+  { value: 'WA', label: 'Washington' },
+  { value: 'WV', label: 'West Virginia' },
+  { value: 'WI', label: 'Wisconsin' },
+  { value: 'WY', label: 'Wyoming' }
 ];
+
 
 const countries = [
   { value: '', label: 'Select Country' },
-  { value: 'US', label: 'United States' },
+  { value: 'AF', label: 'Afghanistan' },
+  { value: 'AL', label: 'Albania' },
+  { value: 'DZ', label: 'Algeria' },
+  { value: 'AD', label: 'Andorra' },
+  { value: 'AO', label: 'Angola' },
+  { value: 'AG', label: 'Antigua and Barbuda' },
+  { value: 'AR', label: 'Argentina' },
+  { value: 'AM', label: 'Armenia' },
+  { value: 'AU', label: 'Australia' },
+  { value: 'AT', label: 'Austria' },
+  { value: 'AZ', label: 'Azerbaijan' },
+  { value: 'BS', label: 'Bahamas' },
+  { value: 'BH', label: 'Bahrain' },
+  { value: 'BD', label: 'Bangladesh' },
+  { value: 'BB', label: 'Barbados' },
+  { value: 'BY', label: 'Belarus' },
+  { value: 'BE', label: 'Belgium' },
+  { value: 'BZ', label: 'Belize' },
+  { value: 'BJ', label: 'Benin' },
+  { value: 'BT', label: 'Bhutan' },
+  { value: 'BO', label: 'Bolivia' },
+  { value: 'BA', label: 'Bosnia and Herzegovina' },
+  { value: 'BW', label: 'Botswana' },
+  { value: 'BR', label: 'Brazil' },
+  { value: 'BN', label: 'Brunei' },
+  { value: 'BG', label: 'Bulgaria' },
+  { value: 'BF', label: 'Burkina Faso' },
+  { value: 'BI', label: 'Burundi' },
+  { value: 'KH', label: 'Cambodia' },
+  { value: 'CM', label: 'Cameroon' },
+  { value: 'CA', label: 'Canada' },
+  { value: 'CV', label: 'Cape Verde' },
+  { value: 'CF', label: 'Central African Republic' },
+  { value: 'TD', label: 'Chad' },
+  { value: 'CL', label: 'Chile' },
   { value: 'CN', label: 'China' },
-  // Add more countries as needed
+  { value: 'CO', label: 'Colombia' },
+  { value: 'KM', label: 'Comoros' },
+  { value: 'CD', label: 'Congo (DRC)' },
+  { value: 'CG', label: 'Congo (Republic)' },
+  { value: 'CR', label: 'Costa Rica' },
+  { value: 'HR', label: 'Croatia' },
+  { value: 'CU', label: 'Cuba' },
+  { value: 'CY', label: 'Cyprus' },
+  { value: 'CZ', label: 'Czech Republic' },
+  { value: 'DK', label: 'Denmark' },
+  { value: 'DJ', label: 'Djibouti' },
+  { value: 'DM', label: 'Dominica' },
+  { value: 'DO', label: 'Dominican Republic' },
+  { value: 'EC', label: 'Ecuador' },
+  { value: 'EG', label: 'Egypt' },
+  { value: 'SV', label: 'El Salvador' },
+  { value: 'GQ', label: 'Equatorial Guinea' },
+  { value: 'ER', label: 'Eritrea' },
+  { value: 'EE', label: 'Estonia' },
+  { value: 'SZ', label: 'Eswatini' },
+  { value: 'ET', label: 'Ethiopia' },
+  { value: 'FJ', label: 'Fiji' },
+  { value: 'FI', label: 'Finland' },
+  { value: 'FR', label: 'France' },
+  { value: 'GA', label: 'Gabon' },
+  { value: 'GM', label: 'Gambia' },
+  { value: 'GE', label: 'Georgia' },
+  { value: 'DE', label: 'Germany' },
+  { value: 'GH', label: 'Ghana' },
+  { value: 'GR', label: 'Greece' },
+  { value: 'GD', label: 'Grenada' },
+  { value: 'GT', label: 'Guatemala' },
+  { value: 'GN', label: 'Guinea' },
+  { value: 'GW', label: 'Guinea-Bissau' },
+  { value: 'GY', label: 'Guyana' },
+  { value: 'HT', label: 'Haiti' },
+  { value: 'HN', label: 'Honduras' },
+  { value: 'HU', label: 'Hungary' },
+  { value: 'IS', label: 'Iceland' },
+  { value: 'IN', label: 'India' },
+  { value: 'ID', label: 'Indonesia' },
+  { value: 'IR', label: 'Iran' },
+  { value: 'IQ', label: 'Iraq' },
+  { value: 'IE', label: 'Ireland' },
+  { value: 'IL', label: 'Israel' },
+  { value: 'IT', label: 'Italy' },
+  { value: 'JM', label: 'Jamaica' },
+  { value: 'JP', label: 'Japan' },
+  { value: 'JO', label: 'Jordan' },
+  { value: 'KZ', label: 'Kazakhstan' },
+  { value: 'KE', label: 'Kenya' },
+  { value: 'KI', label: 'Kiribati' },
+  { value: 'KR', label: 'South Korea' },
+  { value: 'KW', label: 'Kuwait' },
+  { value: 'KG', label: 'Kyrgyzstan' },
+  { value: 'LA', label: 'Laos' },
+  { value: 'LV', label: 'Latvia' },
+  { value: 'LB', label: 'Lebanon' },
+  { value: 'LS', label: 'Lesotho' },
+  { value: 'LR', label: 'Liberia' },
+  { value: 'LY', label: 'Libya' },
+  { value: 'LI', label: 'Liechtenstein' },
+  { value: 'LT', label: 'Lithuania' },
+  { value: 'LU', label: 'Luxembourg' },
+  { value: 'MG', label: 'Madagascar' },
+  { value: 'MW', label: 'Malawi' },
+  { value: 'MY', label: 'Malaysia' },
+  { value: 'MV', label: 'Maldives' },
+  { value: 'ML', label: 'Mali' },
+  { value: 'MT', label: 'Malta' },
+  { value: 'MH', label: 'Marshall Islands' },
+  { value: 'MR', label: 'Mauritania' },
+  { value: 'MU', label: 'Mauritius' },
+  { value: 'MX', label: 'Mexico' },
+  { value: 'FM', label: 'Micronesia' },
+  { value: 'MD', label: 'Moldova' },
+  { value: 'MC', label: 'Monaco' },
+  { value: 'MN', label: 'Mongolia' },
+  { value: 'ME', label: 'Montenegro' },
+  { value: 'MA', label: 'Morocco' },
+  { value: 'MZ', label: 'Mozambique' },
+  { value: 'MM', label: 'Myanmar' },
+  { value: 'NA', label: 'Namibia' },
+  { value: 'NR', label: 'Nauru' },
+  { value: 'NP', label: 'Nepal' },
+  { value: 'NL', label: 'Netherlands' },
+  { value: 'NZ', label: 'New Zealand' },
+  { value: 'NI', label: 'Nicaragua' },
+  { value: 'NE', label: 'Niger' },
+  { value: 'NG', label: 'Nigeria' },
+  { value: 'NO', label: 'Norway' },
+  { value: 'OM', label: 'Oman' },
+  { value: 'PK', label: 'Pakistan' },
+  { value: 'PW', label: 'Palau' },
+  { value: 'PA', label: 'Panama' },
+  { value: 'PG', label: 'Papua New Guinea' },
+  { value: 'PY', label: 'Paraguay' },
+  { value: 'PE', label: 'Peru' },
+  { value: 'PH', label: 'Philippines' },
+  { value: 'PL', label: 'Poland' },
+  { value: 'PT', label: 'Portugal' },
+  { value: 'QA', label: 'Qatar' },
+  { value: 'RO', label: 'Romania' },
+  { value: 'RU', label: 'Russia' },
+  { value: 'RW', label: 'Rwanda' },
+  { value: 'KN', label: 'Saint Kitts and Nevis' },
+  { value: 'LC', label: 'Saint Lucia' },
+  { value: 'VC', label: 'Saint Vincent and the Grenadines' },
+  { value: 'WS', label: 'Samoa' },
+  { value: 'SM', label: 'San Marino' },
+  { value: 'ST', label: 'Sao Tome and Principe' },
+  { value: 'SA', label: 'Saudi Arabia' },
+  { value: 'SN', label: 'Senegal' },
+  { value: 'RS', label: 'Serbia' },
+  { value: 'SC', label: 'Seychelles' },
+  { value: 'SL', label: 'Sierra Leone' },
+  { value: 'SG', label: 'Singapore' },
+  { value: 'SK', label: 'Slovakia' },
+  { value: 'SI', label: 'Slovenia' },
+  { value: 'SB', label: 'Solomon Islands' },
+  { value: 'SO', label: 'Somalia' },
+  { value: 'ZA', label: 'South Africa' },
+  { value: 'SS', label: 'South Sudan' },
+  { value: 'ES', label: 'Spain' },
+  { value: 'LK', label: 'Sri Lanka' },
+  { value: 'SD', label: 'Sudan' },
+  { value: 'SR', label: 'Suriname' },
+  { value: 'SE', label: 'Sweden' },
+  { value: 'CH', label: 'Switzerland' },
+  { value: 'SY', label: 'Syria' },
+  { value: 'TJ', label: 'Tajikistan' },
+  { value: 'TZ', label: 'Tanzania' },
+  { value: 'TH', label: 'Thailand' },
+  { value: 'TL', label: 'Timor-Leste' },
+  { value: 'TG', label: 'Togo' },
+  { value: 'TO', label: 'Tonga' },
+  { value: 'TT', label: 'Trinidad and Tobago' },
+  { value: 'TN', label: 'Tunisia' },
+  { value: 'TR', label: 'Turkey' },
+  { value: 'TM', label: 'Turkmenistan' },
+  { value: 'TV', label: 'Tuvalu' },
+  { value: 'UG', label: 'Uganda' },
+  { value: 'UA', label: 'Ukraine' },
+  { value: 'AE', label: 'United Arab Emirates' },
+  { value: 'GB', label: 'United Kingdom' },
+  { value: 'US', label: 'United States' },
+  { value: 'UY', label: 'Uruguay' },
+  { value: 'UZ', label: 'Uzbekistan' },
+  { value: 'VU', label: 'Vanuatu' },
+  { value: 'VE', label: 'Venezuela' },
+  { value: 'VN', label: 'Vietnam' },
+  { value: 'YE', label: 'Yemen' },
+  { value: 'ZM', label: 'Zambia' },
+  { value: 'ZW', label: 'Zimbabwe' }
 ];
+
 
 const genders = [
   { value: '', label: 'Select Gender' },
@@ -23,6 +259,16 @@ const genders = [
   { value: 'Female', label: 'Female' },
   { value: 'Other', label: 'Other' },
 ];
+
+const MEETING_OPTIONS = ['Dallas 2025', 'Calgary 2026'];
+
+interface Meeting {
+  _id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  location: string;
+}
 
 export default function ApplicationForm() {
   const [formData, setFormData] = useState({
@@ -55,11 +301,14 @@ export default function ApplicationForm() {
     addressToMailHardCopy: '',
     hardCopyMailedDate: '',
     additionalDocumentation: [],
+    meetingId: '',
   });
 
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [meetingsList, setMeetingsList] = useState<Meeting[]>([]);
+  const [meetingsError, setMeetingsError] = useState<string>('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type, checked } = e.target;
@@ -105,7 +354,8 @@ export default function ApplicationForm() {
         'state',
         'postalCode',
         'country',
-        'phone'
+        'phone',
+        'meetingId'
       ];
 
       const missingFields = requiredFields.filter(field => !submissionData[field]);
@@ -118,7 +368,7 @@ export default function ApplicationForm() {
       console.log('Response from server:', response); // Debug log
 
       alert('Application submitted successfully!');
-      navigate('/dashboard');
+      navigate('/');
     } catch (error) {
       console.error('Submission error:', error);
       setError(error instanceof Error ? error.message : 'An unexpected error occurred');
@@ -127,6 +377,22 @@ export default function ApplicationForm() {
       setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    const fetchMeetings = async () => {
+      try {
+        const data = await meetingsApi.getActive();
+        setMeetingsList(Array.isArray(data) ? data : []);
+        setMeetingsError('');
+      } catch (err: any) {
+        setMeetingsList([]);
+        setMeetingsError('Failed to load meetings. Please try again later.');
+        console.error('Error fetching meetings:', err);
+      }
+    };
+    
+    fetchMeetings();
+  }, []);
 
   return (
     <>
@@ -150,6 +416,37 @@ export default function ApplicationForm() {
             )}
 
             <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-8">
+              {/* Meeting Selection */}
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold text-left mb-4">Meeting Selection</h2>
+                {meetingsError && (
+                  <div className="text-red-600 mb-4">{meetingsError}</div>
+                )}
+                {meetingsList.length === 0 ? (
+                  <div className="text-gray-600">No active meetings available at this time.</div>
+                ) : (
+                  <div className="text-left">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Select Meeting
+                    </label>
+                    <select
+                      name="meetingId"
+                      value={formData.meetingId}
+                      onChange={handleChange}
+                      required
+                      className="w-full border rounded p-2"
+                    >
+                      <option value="">Select Meeting</option>
+                      {meetingsList.map(meeting => (
+                        <option key={meeting._id} value={meeting._id}>
+                          {meeting.name} - {meeting.location} ({new Date(meeting.startDate).toLocaleDateString()} to {new Date(meeting.endDate).toLocaleDateString()})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
               {/* Personal Information */}
               <div className="mb-8">
                 <h2 className="text-xl font-semibold text-left mb-4">Personal Information</h2>

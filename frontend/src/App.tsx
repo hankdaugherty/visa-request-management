@@ -4,6 +4,10 @@ import Dashboard from './components/Dashboard';
 import ApplicationForm from './components/ApplicationForm';
 import ApplicationDetails from './components/ApplicationDetails';
 import AdminDashboard from './components/AdminDashboard';
+import Register from './components/Register';
+import UserManagement from './components/UserManagement';
+import MeetingManagement from './components/admin/MeetingManagement';
+import AdminApplications from './components/admin/AdminApplications';
 import './App.css'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -22,6 +26,7 @@ function App() {
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         
         {/* Protected routes */}
         <Route path="/" element={
@@ -40,17 +45,17 @@ function App() {
           </PrivateRoute>
         } />
         
-        {/* Protected admin routes */}
+        {/* Admin routes */}
         <Route path="/admin" element={
           <AdminRoute>
             <AdminDashboard />
           </AdminRoute>
-        } />
-        <Route path="/admin/applications/:id" element={
-          <AdminRoute>
-            <ApplicationDetails isAdmin={true} />
-          </AdminRoute>
-        } />
+        }>
+          <Route index element={<AdminApplications />} />
+          <Route path="meetings" element={<MeetingManagement />} />
+          <Route path="users" element={<UserManagement />} />
+          <Route path="applications/:id" element={<ApplicationDetails isAdmin={true} />} />
+        </Route>
       </Routes>
     </Router>
   );

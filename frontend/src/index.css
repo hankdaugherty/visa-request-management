@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+#application-details {
+    text-align: left;
+}
 #root table {
     text-align: left;
 }

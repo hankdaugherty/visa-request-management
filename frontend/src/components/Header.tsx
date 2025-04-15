@@ -22,7 +22,7 @@ export default function Header() {
             <Link to="/" className="text-gray-600 hover:text-gray-900">
               Dashboard
             </Link>
-            <Link to="/application" className="text-gray-600 hover:text-gray-900">
+            <Link to="/applications/new" className="text-gray-600 hover:text-gray-900">
               New Application
             </Link>
             {isAdmin && (

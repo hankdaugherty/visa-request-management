@@ -2,23 +2,27 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 // No need for BASE_URL with proxy
 export async function apiRequest(endpoint: string, options: RequestInit = {}) {
-  const token = localStorage.getItem('token');
-  
-  if (!token) {
-    throw new Error('No authentication token found');
-  }
-
-  const fullUrl = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
+  // Remove any leading slash from endpoint to prevent double slashes
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  const fullUrl = endpoint.startsWith('http') ? endpoint : `${API_URL}/${cleanEndpoint}`;
 
   const config: RequestInit = {
     ...options,
     method: options.method || 'GET',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
       ...(options.headers || {})
     },
   };
+
+  // Only add the Authorization header if we have a token
+  const token = localStorage.getItem('token');
+  if (token && !endpoint.includes('auth/login')) {
+    config.headers = {
+      ...config.headers,
+      'Authorization': `Bearer ${token}`
+    };
+  }
 
   // Ensure body is properly stringified for POST/PUT requests
   if (options.body && typeof options.body === 'object') {
@@ -67,20 +71,62 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
 // Auth endpoints
 export const auth = {
   login: async (email: string, password: string) => {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password })
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Login failed');
+    try {
+      return await apiRequest('api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: { email, password }
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
     }
+  },
+  
+  register: async (userData: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+  }) => {
+    try {
+      return await apiRequest('api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: userData
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
+    }
+  },
 
-    return response.json();
+  createUser: async (userData: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    isAdmin: boolean;
+  }) => {
+    return await apiRequest('/api/users', {
+      method: 'POST',
+      body: userData
+    });
+  },
+
+  getUsers: async () => {
+    return await apiRequest('/api/users');
+  },
+
+  updateUserRole: async (userId: string, isAdmin: boolean) => {
+    return await apiRequest(`/api/users/${userId}/role`, {
+      method: 'PUT',
+      body: { isAdmin }
+    });
   }
 };
 
@@ -133,4 +179,84 @@ export const applications = {
       throw error;
     }
   },
+
+  delete: async (id: string) => {
+    return await apiRequest(`/api/applications/${id}`, {
+      method: 'DELETE'
+    });
+  },
+
+  getAllForAdmin: async () => {
+    console.log('Fetching all applications as admin');
+    return await apiRequest('/api/applications?admin=true');
+  },
+};
+
+export const fetchMeetings = async () => {
+  const response = await apiRequest('/api/meetings');
+  return response;
+};
+
+export const meetings = {
+  getAll: async () => {
+    try {
+      return await apiRequest('/api/meetings');
+    } catch (error) {
+      console.error('Error fetching meetings:', error);
+      throw error;
+    }
+  },
+
+  create: async (meetingData: {
+    name: string;
+    startDate: string;
+    endDate: string;
+    location: string;
+    isActive: boolean;
+  }) => {
+    try {
+      return await apiRequest('/api/meetings', {
+        method: 'POST',
+        body: meetingData
+      });
+    } catch (error) {
+      console.error('Error creating meeting:', error);
+      throw error;
+    }
+  },
+
+  update: async (id: string, meetingData: {
+    name?: string;
+    startDate?: string;
+    endDate?: string;
+    location?: string;
+    isActive?: boolean;
+  }) => {
+    try {
+      return await apiRequest(`/api/meetings/${id}`, {
+        method: 'PATCH',
+        body: meetingData
+      });
+    } catch (error) {
+      console.error('Error updating meeting:', error);
+      throw error;
+    }
+  },
+
+  delete: async (id: string) => {
+    try {
+      return await apiRequest(`/api/meetings/${id}`, {
+        method: 'DELETE'
+      });
+    } catch (error) {
+      console.error('Error deleting meeting:', error);
+      throw error;
+    }
+  },
+
+  getActive: async () => {
+    return await apiRequest('/api/meetings/active', {
+      method: 'GET'
+    });
+  }
 };

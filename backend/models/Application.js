@@ -152,9 +152,9 @@ const applicationSchema = new mongoose.Schema({
     trim: true
   },
   meeting: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Meeting',
     required: true,
-    enum: ['Dallas 2025', 'Calgary 2026'] // Add more meetings as needed
   },
   // Metadata
   createdAt: {
@@ -191,4 +191,6 @@ applicationSchema.pre('validate', function(next) {
   next();
 });
 
-module.exports = mongoose.model('Application', applicationSchema); 
+const Application = mongoose.model('Application', applicationSchema);
+
+module.exports = Application; 
