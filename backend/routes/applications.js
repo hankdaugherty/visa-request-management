@@ -230,4 +230,27 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
   }
 });
 
+// Get single application by ID
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const application = await Application.findById(req.params.id)
+      .populate('meeting')
+      .populate('userId', 'firstName lastName email');
+    
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    // Check if user has permission to view this application
+    if (req.user.role !== 'admin' && application.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to view this application' });
+    }
+
+    res.json(application);
+  } catch (error) {
+    console.error('Error fetching application:', error);
+    res.status(500).json({ message: 'Error fetching application', error: error.message });
+  }
+});
+
 module.exports = router; 
