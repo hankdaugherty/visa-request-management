@@ -1,13 +1,13 @@
 export interface Application {
   _id: string;
-  userId: string | { _id: string; email: string };
+  userId: string;
   firstName: string;
   lastName: string;
   email: string;
   birthdate: string;
   gender: string;
   passportNumber: string;
-  passportIssuingCountry: string;
+  issuingCountry: string;
   passportExpirationDate: string;
   dateOfArrival: string;
   dateOfDeparture: string;
@@ -24,14 +24,13 @@ export interface Application {
   hotelName?: string;
   hotelConfirmation?: string;
   additionalInformation?: string;
-  status: 'pending' | 'complete' | 'rejected';
+  status: string;
+  createdAt: string;
+  updatedAt: string;
   letterEmailed: boolean;
   hardCopyMailed: boolean;
   hardCopyMailedDate?: string;
-  addressToMailHardCopy?: string;
-  meeting: { _id: string; name: string };
-  createdAt: string;
-  updatedAt: string;
+  meetingId: string;
 }
 
 export interface User {
