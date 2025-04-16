@@ -137,6 +137,12 @@ export const auth = {
       method: 'PUT',
       body: { isAdmin }
     });
+  },
+
+  deleteUser: async (userId: string) => {
+    return await apiRequest(`/api/users/${userId}`, {
+      method: 'DELETE'
+    });
   }
 };
 
