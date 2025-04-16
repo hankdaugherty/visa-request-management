@@ -253,4 +253,49 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
+// Update application
+router.put('/:id', auth, async (req, res) => {
+  try {
+    const application = await Application.findById(req.params.id);
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+    
+    // Check permission
+    if (req.user.role !== 'admin' && application.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to update this application' });
+    }
+
+    // Update the application
+    Object.assign(application, req.body);
+    await application.save();
+    
+    res.json(application);
+  } catch (error) {
+    console.error('Error updating application:', error);
+    res.status(500).json({ message: 'Error updating application', error: error.message });
+  }
+});
+
+// Delete application
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const application = await Application.findById(req.params.id);
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    // Check permission
+    if (req.user.role !== 'admin' && application.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this application' });
+    }
+
+    await application.remove();
+    res.json({ message: 'Application deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting application:', error);
+    res.status(500).json({ message: 'Error deleting application', error: error.message });
+  }
+});
+
 module.exports = router; 
