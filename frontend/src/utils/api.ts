@@ -1,3 +1,5 @@
+import { Application, User, Meeting } from '../types';
+
 const API_URL = import.meta.env.VITE_API_URL;
 
 // No need for BASE_URL with proxy
@@ -140,19 +142,15 @@ export const auth = {
 
 // Applications endpoints
 export const applications = {
-  create: async (data: any) => {
-    try {
-      console.log('Creating application with data:', data);
-      const response = await apiRequest('/api/applications', {
-        method: 'POST',
-        body: data
-      });
-      console.log('Application creation response:', response);
-      return response;
-    } catch (error) {
-      console.error('Application creation error:', error);
-      throw error;
-    }
+  create: async (data: Partial<Application>): Promise<Application> => {
+    const response = await fetch(`${API_URL}/api/applications`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
   },
     
   getAll: () => 
