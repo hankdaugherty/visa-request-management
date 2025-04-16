@@ -129,7 +129,7 @@ const applicationSchema = new mongoose.Schema({
   // Administrative Fields
   status: {
     type: String,
-    enum: ['pending', 'approved', 'rejected'],
+    enum: ['pending', 'complete', 'rejected'],
     default: 'pending'
   },
   letterEmailed: {

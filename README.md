@@ -1,30 +1,79 @@
 # Visa Request Management System
 
-A web application for managing visa requests and meeting registrations. This system allows users to submit visa applications for specific meetings, while administrators can manage meetings, users, and review applications.
+A web application for managing visa requests and applications.
+
+## Setup Instructions
+
+### Prerequisites
+- Node.js (v14 or higher)
+- MongoDB
+- npm or yarn
+
+### Environment Variables
+Create a `.env` file in the backend directory with the following variables:
+```env
+MONGODB_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret_key
+PORT=5000
+```
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone [repository-url]
+cd visa-request-management
+```
+
+2. Install backend dependencies:
+```bash
+cd backend
+npm install
+```
+
+3. Install frontend dependencies:
+```bash
+cd ../frontend
+npm install
+```
+
+### Running the Application
+
+1. Start the backend server:
+```bash
+cd backend
+npm run dev  # for development
+# or
+npm start    # for production
+```
+
+2. Start the frontend development server:
+```bash
+cd frontend
+npm start
+```
+
+The application will be available at `http://localhost:3000`
+
+### Deployment
+
+1. Build the frontend:
+```bash
+cd frontend
+npm run build
+```
+
+2. Set up your production environment variables
+3. Deploy the backend to your chosen hosting platform
+4. Deploy the frontend build to your static hosting service
 
 ## Features
-
-- **User Management**
-  - User registration and authentication
-  - Role-based access control (Admin/User)
-  - Profile management
-
-- **Application Management**
-  - Submit visa applications for specific meetings
-  - Track application status
-  - Upload supporting documents
-  - View application history
-
-- **Admin Features**
-  - Manage meetings (create, edit, delete)
-  - Review and process visa applications
-  - User management with role assignment
-  - View comprehensive application statistics
-
-- **Meeting Management**
-  - Create and manage upcoming meetings
-  - Set meeting dates and locations
-  - Control meeting visibility and status
+- User authentication and authorization
+- Application submission and management
+- Admin dashboard for application review
+- CSV import functionality
+- Meeting management
+- Document upload and management
 
 ## Technology Stack
 
@@ -37,55 +86,6 @@ A web application for managing visa requests and meeting registrations. This sys
   - Node.js with Express
   - MongoDB with Mongoose
   - JWT for authentication
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v14 or higher)
-- MongoDB
-- npm or yarn
-
-### Installation
-
-1. Clone the repository
-```bash
-git clone [repository-url]
-cd visa-request-management
-```
-
-2. Install dependencies for both frontend and backend
-```bash
-# Install backend dependencies
-cd backend
-npm install
-
-# Install frontend dependencies
-cd ../frontend
-npm install
-```
-
-3. Set up environment variables
-```bash
-# Backend (.env)
-PORT=5000
-MONGODB_URI=your_mongodb_uri
-JWT_SECRET=your_jwt_secret
-
-# Frontend (.env)
-VITE_API_URL=http://localhost:5000/api
-```
-
-4. Start the development servers
-```bash
-# Start backend server
-cd backend
-npm run dev
-
-# Start frontend server (in a new terminal)
-cd frontend
-npm run dev
-```
 
 ## API Endpoints
 

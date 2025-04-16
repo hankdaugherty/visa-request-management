@@ -1,6 +1,6 @@
 import { useParams, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import Header from './Header';
+import Header from './common/Header';
 import { applications as applicationsApi } from '../utils/api';
 
 // Constants
@@ -303,73 +303,52 @@ export default function ApplicationDetails({ isAdmin = false }) {
             <h2 className="text-lg font-semibold">Personal Information</h2>
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700">First Name</label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={editedFields.firstName || ''}
-                    onChange={(e) => handleFieldChange('firstName', e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                ) : (
-                  <div className="mt-1">{application.firstName}</div>
-                )}
+                <p className="text-sm font-medium text-gray-500">First Name</p>
+                {renderField({
+                  name: 'firstName',
+                  value: application.firstName,
+                  type: 'text',
+                  editable: true
+                })}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Last Name</label>
-                {isEditing ? (
-                  <input
-                    type="text"
-                    value={editedFields.lastName || ''}
-                    onChange={(e) => handleFieldChange('lastName', e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                ) : (
-                  <div className="mt-1">{application.lastName}</div>
-                )}
+                <p className="text-sm font-medium text-gray-500">Last Name</p>
+                {renderField({
+                  name: 'lastName',
+                  value: application.lastName,
+                  type: 'text',
+                  editable: true
+                })}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Email</label>
-                {isEditing ? (
-                  <input
-                    type="email"
-                    value={editedFields.email || ''}
-                    onChange={(e) => handleFieldChange('email', e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                ) : (
-                  <div className="mt-1">{application.email}</div>
-                )}
+                <p className="text-sm font-medium text-gray-500">Email</p>
+                {renderField({
+                  name: 'email',
+                  value: application.email,
+                  type: 'email',
+                  editable: true
+                })}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Birthdate</label>
-                {isEditing ? (
-                  <input
-                    type="date"
-                    value={editedFields.birthdate?.split('T')[0] || ''}
-                    onChange={(e) => handleFieldChange('birthdate', e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  />
-                ) : (
-                  <div className="mt-1">{formatDate(application.birthdate)}</div>
-                )}
+                <p className="text-sm font-medium text-gray-500">Birthdate</p>
+                {renderField({
+                  name: 'birthdate',
+                  value: application.birthdate,
+                  type: 'date',
+                  editable: true
+                })}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Gender</label>
-                {isEditing ? (
-                  <select
-                    value={editedFields.gender || ''}
-                    onChange={(e) => handleFieldChange('gender', e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  >
-                    {GENDER_OPTIONS.map(option => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <div className="mt-1">{application.gender}</div>
-                )}
+                <p className="text-sm font-medium text-gray-500">Gender</p>
+                {renderField({
+                  name: 'gender',
+                  value: application.gender,
+                  type: 'select',
+                  editable: true,
+                  options: GENDER_OPTIONS
+                })}
               </div>
+
             </div>
           </div>
 

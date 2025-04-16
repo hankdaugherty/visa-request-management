@@ -3,9 +3,9 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import ApplicationForm from './components/ApplicationForm';
 import ApplicationDetails from './components/ApplicationDetails';
-import AdminDashboard from './components/AdminDashboard';
+import AdminDashboard from './components/admin/AdminDashboard';
 import Register from './components/Register';
-import UserManagement from './components/UserManagement';
+import UserManagement from './components/admin/UserManagement';
 import MeetingManagement from './components/admin/MeetingManagement';
 import AdminApplications from './components/admin/AdminApplications';
 import './App.css'

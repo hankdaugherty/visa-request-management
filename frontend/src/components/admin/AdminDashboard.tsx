@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import Header from './Header';
-import { applications as applicationsApi } from '../utils/api';
+import Header from '../common/Header';
+import { applications as applicationsApi } from '../../utils/api';
 
 export default function AdminDashboard() {
   const [applications, setApplications] = useState<Application[]>([]);
@@ -70,11 +70,11 @@ export default function AdminDashboard() {
     <>
       <Header />
       <div className="bg-white shadow">
-        <div className="container mx-auto px-4">
-          <div className="flex space-x-8 py-4">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row sm:space-x-8 space-y-2 sm:space-y-0 py-4">
             <Link
               to="/admin"
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
+              className={`px-3 py-2 rounded-md text-sm font-medium text-center sm:text-left ${
                 location.pathname === '/admin'
                   ? 'bg-gray-900 text-white'
                   : 'text-gray-500 hover:text-gray-900'
@@ -84,7 +84,7 @@ export default function AdminDashboard() {
             </Link>
             <Link
               to="/admin/meetings"
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
+              className={`px-3 py-2 rounded-md text-sm font-medium text-center sm:text-left ${
                 location.pathname === '/admin/meetings'
                   ? 'bg-gray-900 text-white'
                   : 'text-gray-500 hover:text-gray-900'
@@ -94,7 +94,7 @@ export default function AdminDashboard() {
             </Link>
             <Link
               to="/admin/users"
-              className={`px-3 py-2 rounded-md text-sm font-medium ${
+              className={`px-3 py-2 rounded-md text-sm font-medium text-center sm:text-left ${
                 location.pathname === '/admin/users'
                   ? 'bg-gray-900 text-white'
                   : 'text-gray-500 hover:text-gray-900'
@@ -106,7 +106,7 @@ export default function AdminDashboard() {
         </div>
       </div>
       <main className="bg-[#F9FAFB] min-h-screen">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Outlet />
         </div>
       </main>

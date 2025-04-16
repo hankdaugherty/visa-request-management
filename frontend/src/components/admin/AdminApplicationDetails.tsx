@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import Header from './Header';
-import { applications as applicationsApi } from '../utils/api';
+import Header from '../common/Header';
+import { applications as applicationsApi } from '../../utils/api';
 
 export default function AdminApplicationDetails() {
   const { id } = useParams();

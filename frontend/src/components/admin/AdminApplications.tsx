@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { applications as applicationsApi, meetings as meetingsApi } from '../../utils/api';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import ImportModal from './ImportModal';
 
 interface Application {
   _id: string;
@@ -10,11 +11,14 @@ interface Application {
   };
   firstName: string;
   lastName: string;
+  email: string;
+  applicationDate: string;
   meeting: {
     _id: string;
     name: string;
   };
   status: string;
+  createdAt: string;
 }
 
 interface Meeting {
@@ -31,6 +35,8 @@ export default function AdminApplications() {
   const [error, setError] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [applicationToDelete, setApplicationToDelete] = useState<Application | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
 
   // Fetch both meetings and applications when component mounts
@@ -59,10 +65,30 @@ export default function AdminApplications() {
     fetchData();
   }, []);
 
-  // Filter applications based on selected meeting
-  const filteredApplications = applications.filter(app => 
-    app.meeting && app.meeting._id === selectedMeetingId
-  );
+  // Modify the filtering logic to include search and sorting
+  const filteredApplications = applications
+    .filter(app => 
+      // First filter by selected meeting
+      (!selectedMeetingId || app.meeting._id === selectedMeetingId) &&
+      // Then filter by search query
+      (searchQuery === '' || 
+        `${app.firstName} ${app.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
+    .sort((a, b) => {
+      // Define status priority (pending first, then rejected, then complete)
+      const statusPriority = {
+        'pending': 0,
+        'rejected': 1,
+        'complete': 2
+      };
+      
+      // First sort by status priority
+      const statusDiff = statusPriority[a.status.toLowerCase()] - statusPriority[b.status.toLowerCase()];
+      if (statusDiff !== 0) return statusDiff;
+      
+      // If status is the same, sort by application date (newest first)
+      return new Date(b.applicationDate).getTime() - new Date(a.applicationDate).getTime();
+    });
 
   // Calculate statistics for the selected meeting
   const stats = {
@@ -91,33 +117,92 @@ export default function AdminApplications() {
     }
   };
 
-  // Add this function to render an application row (to avoid code duplication)
+  const getStatusConfig = (status: string) => {
+    const configs = {
+      complete: {
+        bgColor: 'bg-blue-100',
+        textColor: 'text-blue-800',
+        icon: '✓',
+      },
+      rejected: {
+        bgColor: 'bg-red-100',
+        textColor: 'text-red-800',
+        icon: '✕',
+      },
+      pending: {
+        bgColor: 'bg-yellow-100',
+        textColor: 'text-yellow-800',
+        icon: '⏳',
+      }
+    };
+    return configs[status.toLowerCase()] || configs.pending;
+  };
+
+  const getRowStyles = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'bg-yellow-50 hover:bg-yellow-100';
+      case 'rejected':
+        return 'bg-red-50 hover:bg-red-100';
+      case 'complete':
+        return 'bg-green-50 hover:bg-green-100';
+      default:
+        return 'bg-white hover:bg-gray-50';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return ''; // Handle invalid dates
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  };
+
+  const capitalizeStatus = (status: string) => {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  // Update the renderApplicationRow function to be more responsive
   const renderApplicationRow = (app: Application) => (
-    <tr key={app._id}>
-      <td className="px-6 py-4 text-sm">{app.userId.email}</td>
-      <td className="px-6 py-4 text-sm">
-        {app.meeting?.name || <span className="text-red-500">No Meeting</span>}
+    <tr 
+      key={app._id} 
+      className={`${getRowStyles(app.status)} transition-colors duration-150 ease-in-out`}
+    >
+      <td className="px-3 lg:px-6 py-4 whitespace-nowrap text-xs lg:text-sm font-medium text-gray-900">
+        {`${app.firstName} ${app.lastName}`}
       </td>
-      <td className="px-6 py-4 text-sm">{`${app.firstName} ${app.lastName}`}</td>
-      <td className="px-6 py-4 text-sm">
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-          ${app.status === 'approved' ? 'bg-green-100 text-green-800' :
-            app.status === 'rejected' ? 'bg-red-100 text-red-800' :
-              'bg-yellow-100 text-yellow-800'}`}>
-          {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
-        </span>
+      <td className="hidden lg:table-cell px-3 lg:px-6 py-4 whitespace-nowrap text-xs lg:text-sm text-gray-500">
+        {app.email}
       </td>
-      <td className="px-6 py-4 text-sm">
-        <div className="flex gap-2">
+      <td className="hidden lg:table-cell px-3 lg:px-6 py-4 whitespace-nowrap text-xs lg:text-sm text-gray-500">
+        {formatDate(app.createdAt)}
+      </td>
+      <td className="px-3 lg:px-6 py-4 whitespace-nowrap text-xs lg:text-sm">
+        {(() => {
+          const config = getStatusConfig(app.status);
+          return (
+            <span className={`inline-flex items-center px-2 py-0.5 lg:px-2.5 lg:py-0.5 rounded-full text-xs font-medium ${config.bgColor} ${config.textColor}`}>
+              <span className="mr-1">{config.icon}</span>
+              {capitalizeStatus(app.status)}
+            </span>
+          );
+        })()}
+      </td>
+      <td className="px-3 lg:px-6 py-4 whitespace-nowrap text-xs lg:text-sm">
+        <div className="flex flex-col lg:flex-row justify-end gap-2">
           <button
             onClick={() => navigate(`/admin/applications/${app._id}`)}
-            className="text-indigo-600 hover:text-indigo-900"
+            className="inline-flex items-center justify-center px-2 py-1 lg:px-3 lg:py-2 border border-transparent text-xs lg:text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             View Details
           </button>
           <button
             onClick={() => handleDelete(app)}
-            className="text-red-600 hover:text-red-900"
+            className="inline-flex items-center justify-center px-2 py-1 lg:px-3 lg:py-2 border border-transparent text-xs lg:text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
           >
             Delete
           </button>
@@ -126,24 +211,43 @@ export default function AdminApplications() {
     </tr>
   );
 
+  // Add this function to refresh applications after import
+  const refreshApplications = async () => {
+    try {
+      const applicationsData = await applicationsApi.getAllForAdmin();
+      setApplications(applicationsData);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="text-red-600">{error}</div>;
 
   return (
     <>
-      {/* Meeting Tabs */}
-      <div className="mb-6">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
+      {/* Meeting Tabs - Made more responsive */}
+      <div className="bg-white rounded-lg shadow mb-8">
+        <div className="p-4 sm:p-6 border-b border-gray-200 flex justify-between items-center">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Applications by Meeting</h2>
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Import Applications
+          </button>
+        </div>
+        <div className="p-3 sm:p-4 overflow-x-auto">
+          <nav className="flex space-x-4 sm:space-x-8">
             {meetings.map(meeting => (
               <button
                 key={meeting._id}
                 onClick={() => setSelectedMeetingId(meeting._id)}
                 className={`${
                   selectedMeetingId === meeting._id
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                    ? 'text-indigo-600 border-indigo-500'
+                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-xs sm:text-sm`}
               >
                 {meeting.name}
               </button>
@@ -152,81 +256,124 @@ export default function AdminApplications() {
         </div>
       </div>
 
-      {/* Statistics Boxes */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center gap-4">
+      {/* Statistics Boxes - Made responsive grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 sm:mb-8">
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
+          <div className="flex items-center gap-3 sm:gap-4">
             <div className="text-gray-500">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
             <div>
-              <p className="text-gray-500">Total Applications</p>
-              <p className="text-2xl font-bold">{stats.total}</p>
+              <p className="text-sm sm:text-base text-gray-500">Total Applications</p>
+              <p className="text-xl sm:text-2xl font-bold">{stats.total}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center gap-4">
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
+          <div className="flex items-center gap-3 sm:gap-4">
             <div className="text-gray-500">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <p className="text-gray-500">Pending Review</p>
-              <p className="text-2xl font-bold">{stats.pending}</p>
+              <p className="text-sm sm:text-base text-gray-500">Pending Review</p>
+              <p className="text-xl sm:text-2xl font-bold">{stats.pending}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center gap-4">
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
+          <div className="flex items-center gap-3 sm:gap-4">
             <div className="text-gray-500">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <p className="text-gray-500">Completed</p>
-              <p className="text-2xl font-bold">{stats.approved}</p>
+              <p className="text-sm sm:text-base text-gray-500">Completed</p>
+              <p className="text-xl sm:text-2xl font-bold">{stats.approved}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Applications Table */}
+      {/* Applications Table with Search */}
       <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold">
-            {meetings.find(m => m._id === selectedMeetingId)?.name || 'All'} Applications
-          </h2>
+        <div className="p-4 lg:p-6 border-b border-gray-200">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <h2 className="text-lg lg:text-xl font-semibold text-gray-900">
+              {meetings.find(m => m._id === selectedMeetingId)?.name || 'All'} Applications
+            </h2>
+            
+            {/* Search Input */}
+            <div className="w-full lg:w-64">
+              <label htmlFor="search" className="sr-only">Search applications</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg 
+                    className="h-5 w-5 text-gray-400" 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    viewBox="0 0 20 20" 
+                    fill="currentColor" 
+                    aria-hidden="true"
+                  >
+                    <path 
+                      fillRule="evenodd" 
+                      d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" 
+                      clipRule="evenodd" 
+                    />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  name="search"
+                  id="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="Search by name..."
+                />
+              </div>
+            </div>
+          </div>
         </div>
-        
-        {loading ? (
-          <div className="p-6">Loading...</div>
-        ) : error ? (
-          <div className="p-6 text-red-600">{error}</div>
-        ) : filteredApplications.length === 0 ? (
-          <div className="p-6 text-gray-500">No applications found for this meeting.</div>
-        ) : (
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">User</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Meeting</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Name</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Status</th>
-                <th className="px-6 py-3 text-left text-sm font-medium text-gray-500">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredApplications.map(app => renderApplicationRow(app))}
-            </tbody>
-          </table>
-        )}
+
+        <div className="overflow-x-auto">
+          {loading ? (
+            <div className="flex justify-center items-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            </div>
+          ) : error ? (
+            <div className="p-4 lg:p-6 text-center text-red-600 bg-red-50 rounded-lg m-4">
+              <p className="font-medium">{error}</p>
+            </div>
+          ) : filteredApplications.length === 0 ? (
+            <div className="p-4 lg:p-6 text-center text-gray-500">
+              {searchQuery 
+                ? 'No applications found matching your search.'
+                : 'No applications found for this meeting.'}
+            </div>
+          ) : (
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="hidden lg:table-cell px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th className="hidden lg:table-cell px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted Date</th>
+                  <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-3 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 bg-white">
+                {filteredApplications.map(app => renderApplicationRow(app))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
 
       <DeleteConfirmationModal
@@ -237,6 +384,15 @@ export default function AdminApplications() {
         }}
         onConfirm={confirmDelete}
         itemName={applicationToDelete ? `${applicationToDelete.firstName} ${applicationToDelete.lastName}` : ''}
+      />
+
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImportComplete={async () => {
+          await refreshApplications();
+          setShowImportModal(false);
+        }}
       />
     </>
   );

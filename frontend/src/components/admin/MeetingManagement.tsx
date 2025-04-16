@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { meetings } from '../../utils/api';
+import { Modal } from '../common/Modal';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 interface Meeting {
   _id: string;
@@ -15,6 +17,9 @@ export default function MeetingManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [meetingToDelete, setMeetingToDelete] = useState<Meeting | null>(null);
   
   const initialFormState = {
     name: '',
@@ -47,22 +52,31 @@ export default function MeetingManagement() {
       if (editingMeeting) {
         await meetings.update(editingMeeting._id, formData);
       } else {
-        await meetings.create(formData);
+        const newMeeting = await meetings.create(formData);
+        setMeetingsList([...meetingsList, newMeeting]);
       }
       await fetchMeetings();
       setFormData(initialFormState);
       setEditingMeeting(null);
+      setShowAddModal(false);
     } catch (err: any) {
       setError(err.message || 'Failed to save meeting');
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this meeting?')) return;
+  const handleDelete = (meeting: Meeting) => {
+    setMeetingToDelete(meeting);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!meetingToDelete) return;
     
     try {
-      await meetings.delete(id);
+      await meetings.delete(meetingToDelete._id);
       await fetchMeetings();
+      setShowDeleteModal(false);
+      setMeetingToDelete(null);
     } catch (err: any) {
       setError(err.message || 'Failed to delete meeting');
     }
@@ -77,6 +91,7 @@ export default function MeetingManagement() {
       location: meeting.location,
       isActive: meeting.isActive
     });
+    setShowAddModal(true);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -87,105 +102,41 @@ export default function MeetingManagement() {
     }));
   };
 
+  const modalTitle = editingMeeting ? "Edit Meeting" : "Add New Meeting";
+  const submitButtonText = editingMeeting ? "Save Changes" : "Add Meeting";
+
   if (loading) return <div>Loading...</div>;
 
   return (
     <div className="container mx-auto p-4">
       {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{error}</div>}
       
-      <h2 className="text-2xl font-bold mb-4">
-        {editingMeeting ? 'Edit Meeting' : 'Add New Meeting'}
-      </h2>
-      
-      <form onSubmit={handleSubmit} className="mb-8 space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Name</label>
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            required
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Start Date</label>
-          <input
-            type="date"
-            name="startDate"
-            value={formData.startDate}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            required
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700">End Date</label>
-          <input
-            type="date"
-            name="endDate"
-            value={formData.endDate}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            required
-          />
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Location</label>
-          <input
-            type="text"
-            name="location"
-            value={formData.location}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            required
-          />
-        </div>
-        
-        <div>
-          <label className="flex items-center">
-            <input
-              type="checkbox"
-              name="isActive"
-              checked={formData.isActive}
-              onChange={handleChange}
-              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-            />
-            <span className="ml-2">Active (show in application form)</span>
-          </label>
-        </div>
-        
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6">
+        <h2 className="text-xl font-semibold">Upcoming Meetings</h2>
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          <svg 
+            className="h-5 w-5 mr-2" 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
           >
-            {editingMeeting ? 'Update Meeting' : 'Add Meeting'}
-          </button>
-          
-          {editingMeeting && (
-            <button
-              type="button"
-              onClick={() => {
-                setEditingMeeting(null);
-                setFormData(initialFormState);
-              }}
-              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
-      </form>
+            <path 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              strokeWidth={2} 
+              d="M12 6v6m0 0v6m0-6h6m-6 0H6" 
+            />
+          </svg>
+          Add New Meeting
+        </button>
+      </div>
 
-      <h3 className="text-xl font-bold mb-4">Existing Meetings</h3>
       <div className="space-y-4">
         {meetingsList.map(meeting => (
-          <div key={meeting._id} className="border p-4 rounded-lg flex justify-between items-center bg-white">
+          <div key={meeting._id} className="border p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 bg-white">
             <div>
               <h4 className="font-bold">{meeting.name}</h4>
               <p>{meeting.location}</p>
@@ -197,16 +148,16 @@ export default function MeetingManagement() {
                 {meeting.isActive ? 'Active' : 'Inactive'}
               </span>
             </div>
-            <div className="space-x-2">
+            <div className="flex gap-2 w-full sm:w-auto">
               <button
                 onClick={() => handleEdit(meeting)}
-                className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
+                className="flex-1 sm:flex-none bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
               >
                 Edit
               </button>
               <button
-                onClick={() => handleDelete(meeting._id)}
-                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                onClick={() => handleDelete(meeting)}
+                className="flex-1 sm:flex-none bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
               >
                 Delete
               </button>
@@ -214,6 +165,126 @@ export default function MeetingManagement() {
           </div>
         ))}
       </div>
+
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => {
+          setShowAddModal(false);
+          setEditingMeeting(null);
+          setFormData(initialFormState);
+        }}
+        title={modalTitle}
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                Name
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                required
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  id="startDate"
+                  name="startDate"
+                  value={formData.startDate}
+                  onChange={handleChange}
+                  className="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  id="endDate"
+                  name="endDate"
+                  value={formData.endDate}
+                  onChange={handleChange}
+                  className="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+              Location
+            </label>
+            <input
+              type="text"
+              id="location"
+              name="location"
+              value={formData.location}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              required
+            />
+          </div>
+          
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="isActive"
+              name="isActive"
+              checked={formData.isActive}
+              onChange={handleChange}
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            />
+            <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
+              Active (show in application form)
+            </label>
+          </div>
+          
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setShowAddModal(false);
+                setEditingMeeting(null);
+                setFormData(initialFormState);
+              }}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              {submitButtonText}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setMeetingToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        itemName={meetingToDelete?.name || ''}
+      />
     </div>
   );
 } 

@@ -2,20 +2,27 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 // No need for BASE_URL with proxy
 export async function apiRequest(endpoint: string, options: RequestInit = {}) {
-  // Remove any leading slash from endpoint to prevent double slashes
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
   const fullUrl = endpoint.startsWith('http') ? endpoint : `${API_URL}/${cleanEndpoint}`;
 
   const config: RequestInit = {
     ...options,
     method: options.method || 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {})
-    },
   };
 
-  // Only add the Authorization header if we have a token
+  // Only set Content-Type if not FormData
+  if (!(options.body instanceof FormData)) {
+    config.headers = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+  } else {
+    config.headers = {
+      ...options.headers,
+    };
+  }
+
+  // Add authorization header
   const token = localStorage.getItem('token');
   if (token && !endpoint.includes('auth/login')) {
     config.headers = {
@@ -24,17 +31,19 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     };
   }
 
-  // Ensure body is properly stringified for POST/PUT requests
-  if (options.body && typeof options.body === 'object') {
+  // Only stringify body if not FormData
+  if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
     config.body = JSON.stringify(options.body);
+  } else {
+    config.body = options.body;
   }
 
   try {
-    console.log('Making API request:', { 
-      url: fullUrl, 
+    console.log('Making API request:', {
+      url: fullUrl,
       method: config.method,
       headers: config.headers,
-      body: config.body 
+      body: config.body instanceof FormData ? '[FormData]' : config.body
     });
 
     const response = await fetch(fullUrl, config);
@@ -55,7 +64,6 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
       }
     }
 
-    // Only try to parse JSON if there's content
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
       return response.json();
@@ -189,6 +197,16 @@ export const applications = {
   getAllForAdmin: async () => {
     console.log('Fetching all applications as admin');
     return await apiRequest('/api/applications?admin=true');
+  },
+
+  import: async (file: File) => {
+    console.log('Preparing to import file:', file.name);
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiRequest('/api/applications/import', {
+      method: 'POST',
+      body: formData,
+    });
   },
 };
 

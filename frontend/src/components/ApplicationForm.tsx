@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { applications, meetings as meetingsApi } from '../utils/api';
-import Header from './Header';
+import Header from './common/Header';
 
 const states = [
   { value: '', label: 'Select State' },

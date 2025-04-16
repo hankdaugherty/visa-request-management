@@ -31,7 +31,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
-const applicationRoutes = require('./routes/application');
+const applicationRoutes = require('./middleware/application');
 const uploadRoutes = require('./routes/upload');
 const adminRoutes = require('./routes/admin');
 const meetingRoutes = require('./routes/meetings');
