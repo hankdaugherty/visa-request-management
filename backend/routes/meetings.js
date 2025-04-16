@@ -43,7 +43,7 @@ router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 // Update meeting
-router.patch('/:id', authMiddleware, adminMiddleware, async (req, res) => {
+router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const meeting = await Meeting.findByIdAndUpdate(
       req.params.id,
