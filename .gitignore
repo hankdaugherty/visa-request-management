@@ -31,3 +31,4 @@ Thumbs.db
 *.csv
 *.xlsx
 *.xls 
+.vercel
