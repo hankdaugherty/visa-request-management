@@ -19,7 +19,9 @@ app.use(helmet({
 
 // Simple CORS configuration
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.CORS_ORIGIN 
+    : 'http://localhost:5173',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -31,7 +33,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
-const applicationRoutes = require('./middleware/application');
+const applicationRoutes = require('./routes/applications');
 const uploadRoutes = require('./routes/upload');
 const adminRoutes = require('./routes/admin');
 const meetingRoutes = require('./routes/meetings');
