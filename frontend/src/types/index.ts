@@ -30,7 +30,7 @@ export interface Application {
   letterEmailed: boolean;
   hardCopyMailed: boolean;
   hardCopyMailedDate?: string;
-  meetingId: string;
+  meeting: string;
 }
 
 export interface User {
