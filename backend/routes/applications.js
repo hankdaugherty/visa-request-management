@@ -273,11 +273,22 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to update this application' });
     }
 
-    // Update the application
-    Object.assign(application, req.body);
+    // Update the application with lastUpdatedBy
+    Object.assign(application, {
+      ...req.body,
+      lastUpdatedBy: req.user._id,
+      updatedAt: new Date()
+    });
+    
     await application.save();
     
-    res.json(application);
+    // Fetch the updated application with populated fields
+    const updatedApplication = await Application.findById(application._id)
+      .populate('meeting')
+      .populate('userId', 'firstName lastName email')
+      .populate('lastUpdatedBy', 'firstName lastName email');
+    
+    res.json(updatedApplication);
   } catch (error) {
     console.error('Error updating application:', error);
     res.status(500).json({ message: 'Error updating application', error: error.message });
