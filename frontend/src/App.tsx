@@ -8,6 +8,8 @@ import Register from './components/Register';
 import UserManagement from './components/admin/UserManagement';
 import MeetingManagement from './components/admin/MeetingManagement';
 import AdminApplications from './components/admin/AdminApplications';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
 import './App.css'
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -56,6 +58,10 @@ function App() {
           <Route path="users" element={<UserManagement />} />
           <Route path="applications/:id" element={<ApplicationDetails isAdmin={true} />} />
         </Route>
+
+        {/* New routes */}
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
       </Routes>
     </Router>
   );
