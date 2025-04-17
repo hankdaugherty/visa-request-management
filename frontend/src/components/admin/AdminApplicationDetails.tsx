@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Header from '../common/Header';
 import { applications as applicationsApi } from '../../utils/api';
+import { US_STATES, COUNTRIES } from '../../constants';
 
 interface ApplicationField {
   name: string;
@@ -45,6 +46,10 @@ export default function AdminApplicationDetails() {
   };
 
   const renderField = (field: ApplicationField) => {
+    if (!field.editable && !isEditing) {
+      return <div className="mt-1">{field.value?.toString()}</div>;
+    }
+
     switch (field.type) {
       case 'date':
         return (
@@ -61,7 +66,7 @@ export default function AdminApplicationDetails() {
             type="checkbox"
             checked={field.value as boolean}
             onChange={(e) => handleEdit(field.name, e.target.checked)}
-            className="mt-1"
+            className="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
           />
         );
       case 'select':
@@ -123,7 +128,7 @@ export default function AdminApplicationDetails() {
                       value: application.status,
                       type: 'select',
                       editable: true,
-                      options: ['pending', 'complete']
+                      options: ['pending', 'complete', 'rejected']
                     })}
                   </div>
                   <div className="text-left">
@@ -156,19 +161,116 @@ export default function AdminApplicationDetails() {
                 </div>
               </div>
 
-              {/* Personal Information (read-only) */}
+              {/* Company Information */}
               <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold mb-4 text-left">Personal Information</h2>
+                <h2 className="text-lg font-semibold mb-4">Company Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="text-left">
-                    <label className="block text-sm font-medium text-gray-700">Name</label>
-                    <div className="mt-1">{`${application.firstName} ${application.lastName}`}</div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Company Name</label>
+                    {renderField({
+                      name: 'companyName',
+                      value: application.companyName,
+                      type: 'text',
+                      editable: true
+                    })}
                   </div>
-                  <div className="text-left">
-                    <label className="block text-sm font-medium text-gray-700">Email</label>
-                    <div className="mt-1">{application.email}</div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Position</label>
+                    {renderField({
+                      name: 'position',
+                      value: application.position,
+                      type: 'text',
+                      editable: true
+                    })}
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Company Address</label>
+                    {renderField({
+                      name: 'companyMailingAddress1',
+                      value: application.companyMailingAddress1,
+                      type: 'text',
+                      editable: true
+                    })}
+                    {renderField({
+                      name: 'companyMailingAddress2',
+                      value: application.companyMailingAddress2,
+                      type: 'text',
+                      editable: true
+                    })}
+                    <div className="flex gap-2 mt-2">
+                      <div className="flex-1">
+                        {renderField({
+                          name: 'city',
+                          value: application.city,
+                          type: 'text',
+                          editable: true
+                        })}
+                      </div>
+                      <div className="w-24">
+                        {renderField({
+                          name: 'state',
+                          value: application.state,
+                          type: 'select',
+                          editable: true,
+                          options: US_STATES
+                        })}
+                      </div>
+                      <div className="w-32">
+                        {renderField({
+                          name: 'postalCode',
+                          value: application.postalCode,
+                          type: 'text',
+                          editable: true
+                        })}
+                      </div>
+                    </div>
+                    <div className="mt-2">
+                      {renderField({
+                        name: 'country',
+                        value: application.country,
+                        type: 'select',
+                        editable: true,
+                        options: COUNTRIES
+                      })}
+                    </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Contact Information */}
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-lg font-semibold mb-4">Contact Information</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Phone</label>
+                    {renderField({
+                      name: 'phone',
+                      value: application.phone,
+                      type: 'tel',
+                      editable: true
+                    })}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Fax</label>
+                    {renderField({
+                      name: 'fax',
+                      value: application.fax,
+                      type: 'tel',
+                      editable: true
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Information */}
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-lg font-semibold mb-4">Additional Information</h2>
+                {renderField({
+                  name: 'additionalInformation',
+                  value: application.additionalInformation || '',
+                  type: 'text',
+                  editable: true
+                })}
               </div>
             </div>
           </div>
