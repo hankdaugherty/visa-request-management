@@ -13,7 +13,7 @@ interface ApplicationField {
   value: string | boolean | Date;
   type: 'text' | 'date' | 'email' | 'tel' | 'checkbox' | 'select';
   editable: boolean;
-  options?: string[];
+  options?: Array<string | { value: string; label: string }>;
 }
 
 interface Application {
@@ -225,9 +225,13 @@ export default function ApplicationDetails({ isAdmin = false }) {
             onChange={(e) => handleFieldChange(field.name, e.target.value)}
             className={inputClass}
           >
-            {field.options?.map(option => (
-              <option key={option} value={option}>{option}</option>
-            ))}
+            {field.options?.map(option => {
+              if (typeof option === 'string') {
+                return <option key={option} value={option}>{option}</option>;
+              } else {
+                return <option key={option.value} value={option.value}>{option.label}</option>;
+              }
+            })}
           </select>
         );
       default:
@@ -392,7 +396,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
                       value: application.issuingCountry,
                       type: 'select',
                       editable: true,
-                      options: countries.map(c => ({ value: c.value, label: c.label }))
+                      options: countries
                     })}
                   </div>
                   <div className="text-left">
