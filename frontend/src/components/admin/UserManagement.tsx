@@ -23,6 +23,11 @@ function ensureUserRole(user: User): User & { role: 'user' | 'admin' } {
   };
 }
 
+// Add this helper function at the top level
+function getUserRole(user: User): 'admin' | 'user' {
+  return user.isAdmin ? 'admin' : 'user';
+}
+
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
@@ -246,7 +251,7 @@ export default function UserManagement() {
               <tr 
                 key={user._id}
                 className={`hover:bg-gray-50 transition-colors duration-150 ease-in-out ${
-                  user.role === 'admin' ? 'bg-blue-50' : ''
+                  getUserRole(user) === 'admin' ? 'bg-blue-50' : ''
                 }`}
               >
                 <td className="px-3 lg:px-6 py-4 whitespace-nowrap">
@@ -255,9 +260,9 @@ export default function UserManagement() {
                   </div>
                   <div className="lg:hidden mt-1">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      user.role === 'admin' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      getUserRole(user) === 'admin' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                     }`}>
-                      {user.role}
+                      {getUserRole(user)}
                     </span>
                   </div>
                 </td>
@@ -266,9 +271,9 @@ export default function UserManagement() {
                 </td>
                 <td className="hidden lg:table-cell px-3 lg:px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    user.role === 'admin' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    getUserRole(user) === 'admin' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {user.role}
+                    {getUserRole(user)}
                   </span>
                 </td>
                 <td className="px-3 lg:px-6 py-4 whitespace-nowrap text-right text-sm">
