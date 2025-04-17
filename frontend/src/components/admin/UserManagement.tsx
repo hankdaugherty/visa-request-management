@@ -28,6 +28,12 @@ function getUserRole(user: User): 'admin' | 'user' {
   return user.isAdmin ? 'admin' : 'user';
 }
 
+// Add this helper function
+function isUserAdmin(user: User): boolean {
+  // Check both properties to be safe
+  return user.isAdmin || user.role === 'admin';
+}
+
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
@@ -45,6 +51,16 @@ export default function UserManagement() {
   });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [userToChangePassword, setUserToChangePassword] = useState<User | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [userToEdit, setUserToEdit] = useState<User | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: ''
+  });
 
   const USERS_PER_PAGE = 10;
 
@@ -75,9 +91,8 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     try {
       const response = await auth.getUsers();
-      // Transform the users to ensure they have the role property
-      const usersWithRole = response.map(ensureUserRole);
-      setUsers(usersWithRole);
+      console.log('Users from API:', response); // Debug log
+      setUsers(response);
     } catch (error) {
       setError('Failed to fetch users');
     }
@@ -145,14 +160,49 @@ export default function UserManagement() {
     handleDelete(user);
   };
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userToChangePassword) return;
+
+    try {
+      await auth.changeUserPassword(userToChangePassword._id, newPassword);
+      setSuccess('Password changed successfully');
+      setShowPasswordModal(false);
+      setUserToChangePassword(null);
+      setNewPassword('');
+    } catch (error) {
+      setError('Failed to change password');
+    }
+  };
+
   const openPasswordModal = (user: User) => {
-    // TODO: Implement password change functionality
-    console.log('Change password for user:', user);
+    setUserToChangePassword(user);
+    setShowPasswordModal(true);
+  };
+
+  const handleEditUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userToEdit) return;
+
+    try {
+      await auth.updateUser(userToEdit._id, editFormData);
+      await fetchUsers(); // Refresh the list
+      setSuccess('User updated successfully');
+      setShowEditModal(false);
+      setUserToEdit(null);
+    } catch (error) {
+      setError('Failed to update user');
+    }
   };
 
   const openEditModal = (user: User) => {
-    // TODO: Implement edit user functionality
-    console.log('Edit user:', user);
+    setUserToEdit(user);
+    setEditFormData({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email
+    });
+    setShowEditModal(true);
   };
 
   // Pagination calculations
@@ -251,7 +301,7 @@ export default function UserManagement() {
               <tr 
                 key={user._id}
                 className={`hover:bg-gray-50 transition-colors duration-150 ease-in-out ${
-                  user.isAdmin ? 'bg-blue-50' : ''
+                  isUserAdmin(user) ? 'bg-blue-50' : ''
                 }`}
               >
                 <td className="px-3 lg:px-6 py-4 whitespace-nowrap">
@@ -260,9 +310,9 @@ export default function UserManagement() {
                   </div>
                   <div className="lg:hidden mt-1">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      user.isAdmin ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      isUserAdmin(user) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                     }`}>
-                      {user.isAdmin ? 'admin' : 'user'}
+                      {isUserAdmin(user) ? 'admin' : 'user'}
                     </span>
                   </div>
                 </td>
@@ -271,9 +321,9 @@ export default function UserManagement() {
                 </td>
                 <td className="hidden lg:table-cell px-3 lg:px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    user.isAdmin ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    isUserAdmin(user) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {user.isAdmin ? 'admin' : 'user'}
+                    {isUserAdmin(user) ? 'admin' : 'user'}
                   </span>
                 </td>
                 <td className="px-3 lg:px-6 py-4 whitespace-nowrap text-right text-sm">
@@ -394,6 +444,121 @@ export default function UserManagement() {
         onConfirm={confirmDelete}
         itemName={userToDelete ? `${userToDelete.firstName} ${userToDelete.lastName}` : ''}
       />
+
+      <Modal
+        isOpen={showPasswordModal}
+        onClose={() => {
+          setShowPasswordModal(false);
+          setUserToChangePassword(null);
+          setNewPassword('');
+        }}
+        title="Change Password"
+      >
+        <form onSubmit={handlePasswordChange} className="space-y-4">
+          <div>
+            <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
+              New Password
+            </label>
+            <input
+              type="password"
+              id="newPassword"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              required
+              minLength={6}
+            />
+          </div>
+          <div className="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => {
+                setShowPasswordModal(false);
+                setUserToChangePassword(null);
+                setNewPassword('');
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Change Password
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setUserToEdit(null);
+        }}
+        title="Edit User"
+      >
+        <form onSubmit={handleEditUser} className="space-y-4">
+          <div>
+            <label htmlFor="editFirstName" className="block text-sm font-medium text-gray-700">
+              First Name
+            </label>
+            <input
+              type="text"
+              id="editFirstName"
+              value={editFormData.firstName}
+              onChange={(e) => setEditFormData({ ...editFormData, firstName: e.target.value })}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="editLastName" className="block text-sm font-medium text-gray-700">
+              Last Name
+            </label>
+            <input
+              type="text"
+              id="editLastName"
+              value={editFormData.lastName}
+              onChange={(e) => setEditFormData({ ...editFormData, lastName: e.target.value })}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="editEmail" className="block text-sm font-medium text-gray-700">
+              Email
+            </label>
+            <input
+              type="email"
+              id="editEmail"
+              value={editFormData.email}
+              onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              required
+            />
+          </div>
+          <div className="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => {
+                setShowEditModal(false);
+                setUserToEdit(null);
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 } 
