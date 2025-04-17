@@ -12,6 +12,7 @@ const states = [
   { value: 'CA', label: 'California' },
   { value: 'CO', label: 'Colorado' },
   { value: 'CT', label: 'Connecticut' },
+  { value: 'DC', label: 'District of Columbia' },
   { value: 'DE', label: 'Delaware' },
   { value: 'FL', label: 'Florida' },
   { value: 'GA', label: 'Georgia' },
@@ -301,7 +302,7 @@ export default function ApplicationForm() {
     addressToMailHardCopy: '',
     hardCopyMailedDate: '',
     additionalDocumentation: [],
-    meetingId: '',
+    meeting: '',
   });
 
   const navigate = useNavigate();
@@ -355,7 +356,7 @@ export default function ApplicationForm() {
         'postalCode',
         'country',
         'phone',
-        'meetingId'
+        'meeting'
       ];
 
       const missingFields = requiredFields.filter(field => !submissionData[field]);
@@ -430,8 +431,8 @@ export default function ApplicationForm() {
                       Select Meeting
                     </label>
                     <select
-                      name="meetingId"
-                      value={formData.meetingId}
+                      name="meeting"
+                      value={formData.meeting}
                       onChange={handleChange}
                       required
                       className="w-full border rounded p-2"

@@ -304,7 +304,7 @@ router.post('/', auth, async (req, res) => {
     const application = new Application({
       ...req.body,
       userId: req.user._id,
-      status: 'pending'
+      status: 'Pending'
     });
     
     await application.save();
