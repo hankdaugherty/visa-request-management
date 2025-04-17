@@ -175,9 +175,10 @@ export default function ApplicationDetails({ isAdmin = false }) {
     });
   };
 
-  const renderField = (field: ApplicationField) => {
-    const inputClass = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500";
+  // Move inputClass outside of renderField to make it accessible throughout the component
+  const inputClass = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500";
 
+  const renderField = (field: ApplicationField) => {
     if (!field.editable && !isEditing) {
       if (field.type === 'date') {
         return <div className="mt-1">{field.value ? formatDate(field.value as string) : ''}</div>;
@@ -247,32 +248,30 @@ export default function ApplicationDetails({ isAdmin = false }) {
             <div className="bg-white shadow rounded-lg">
               {/* Action buttons in the top right */}
               <div className="flex justify-end p-4">
-                {canEdit() && !isEditing && (
-                  <button
-                    onClick={handleEdit}
-                    className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-                  >
-                    Edit Application
-                  </button>
-                )}
-                {isEditing && (
-                  <div className="space-x-2">
+                {canEdit() && (
+                  isEditing ? (
+                    <div className="space-x-2">
+                      <button
+                        onClick={handleSave}
+                        className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setIsEditing(false)}
+                        className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
                     <button
-                      onClick={handleSave}
-                      className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                      onClick={handleEdit}
+                      className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
                     >
-                      Save Changes
+                      Edit
                     </button>
-                    <button
-                      onClick={() => {
-                        setIsEditing(false);
-                        setEditedFields(application);
-                      }}
-                      className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                  )
                 )}
               </div>
 
@@ -340,7 +339,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
 
               {/* Passport Information */}
               <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold mb-4">Passport Information</h2>
+                <h2 className="text-lg font-semibold mb-4 text-left">Passport Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Passport Number</label>
@@ -375,7 +374,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
 
               {/* Travel Information */}
               <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold mb-4">Travel Information</h2>
+                <h2 className="text-lg font-semibold mb-4 text-left">Travel Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Arrival Date</label>
@@ -400,7 +399,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
 
               {/* Company Information */}
               <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold mb-4">Company Information</h2>
+                <h2 className="text-lg font-semibold mb-4 text-left">Company Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Company Name</label>
@@ -476,7 +475,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
 
               {/* Contact Information */}
               <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold mb-4">Contact Information</h2>
+                <h2 className="text-lg font-semibold mb-4 text-left">Contact Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Phone</label>
@@ -504,7 +503,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
               {/* Hotel Information */}
               {(application.hotelName || application.hotelConfirmation) && (
                 <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-lg font-semibold mb-4">Hotel Information</h2>
+                  <h2 className="text-lg font-semibold mb-4 text-left">Hotel Information</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="text-left">
                       <label className="block text-sm font-medium text-gray-700">Hotel Name</label>
@@ -530,7 +529,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
 
               {/* Additional Information */}
               <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold mb-4">Additional Information</h2>
+                <h2 className="text-lg font-semibold mb-4 text-left">Additional Information</h2>
                 {renderField({
                   name: 'additionalInformation',
                   value: application.additionalInformation || '',
@@ -541,7 +540,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
 
               {/* Application Status */}
               <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold mb-4">Application Status</h2>
+                <h2 className="text-lg font-semibold mb-4 text-left">Application Status</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Created At</label>
