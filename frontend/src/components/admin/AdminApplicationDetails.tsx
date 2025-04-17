@@ -19,8 +19,6 @@ export default function AdminApplicationDetails() {
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(true); // Always in edit mode for admin
 
-  const inputClass = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500";
-
   useEffect(() => {
     const fetchApplication = async () => {
       try {
@@ -46,6 +44,8 @@ export default function AdminApplicationDetails() {
   };
 
   const renderField = (field: ApplicationField) => {
+    const inputClass = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500";
+
     if (!field.editable && !isEditing) {
       return <div className="mt-1">{field.value?.toString()}</div>;
     }
@@ -165,7 +165,7 @@ export default function AdminApplicationDetails() {
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-lg font-semibold mb-4">Company Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Company Name</label>
                     {renderField({
                       name: 'companyName',
@@ -174,7 +174,7 @@ export default function AdminApplicationDetails() {
                       editable: true
                     })}
                   </div>
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Position</label>
                     {renderField({
                       name: 'position',
@@ -183,7 +183,7 @@ export default function AdminApplicationDetails() {
                       editable: true
                     })}
                   </div>
-                  <div className="col-span-2">
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Company Address</label>
                     {renderField({
                       name: 'companyMailingAddress1',
@@ -241,7 +241,7 @@ export default function AdminApplicationDetails() {
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-lg font-semibold mb-4">Contact Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Phone</label>
                     {renderField({
                       name: 'phone',
@@ -250,7 +250,7 @@ export default function AdminApplicationDetails() {
                       editable: true
                     })}
                   </div>
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Fax</label>
                     {renderField({
                       name: 'fax',
