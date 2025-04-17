@@ -734,6 +734,18 @@ export default function ApplicationForm() {
                         className="w-full border rounded p-2"
                       />
                     </div>
+                    <div className="text-left">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Fax
+                      </label>
+                      <input
+                        type="tel"
+                        name="fax"
+                        value={formData.fax}
+                        onChange={handleChange}
+                        className="w-full border rounded p-2"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

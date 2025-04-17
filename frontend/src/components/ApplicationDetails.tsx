@@ -48,13 +48,25 @@ export default function ApplicationDetails({ isAdmin = false }) {
   const isAdminView = location.pathname.includes('/admin');
   const currentUserId = localStorage.getItem('userId');
   const userRole = localStorage.getItem('userRole');
+  const isAdminUser = userRole === 'admin' || isAdmin;
 
   const canEdit = () => {
-    if (!application) return false;
-    if (isAdmin) return true; // Admins can always edit
+    if (!application) {
+      console.log('No application loaded');
+      return false;
+    }
     
     const isOwner = application.userId?._id === currentUserId;
     const isPending = application.status?.toLowerCase() === 'pending';
+    
+    console.log('Application Edit Check:', {
+      isOwner,
+      isPending,
+      applicationUserId: application.userId?._id,
+      currentUserId,
+      applicationStatus: application.status
+    });
+    
     return isOwner && isPending;
   };
 
@@ -236,7 +248,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
 
   return (
     <>
-      {!isAdmin && <Header />}
+      {!isAdminUser && <Header />}
       <main className="bg-[#F9FAFB] min-h-screen">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto py-8">

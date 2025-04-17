@@ -178,6 +178,7 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
           postalCode: record.postalCode,
           country: record.country,
           phone: record.phone,
+          fax: record.fax || '',
           meeting: meeting._id,
           
           // Optional fields

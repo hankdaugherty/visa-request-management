@@ -114,6 +114,7 @@ export default function ImportModal({ isOpen, onClose, onImportComplete }: Impor
                       <li>postalCode</li>
                       <li>country</li>
                       <li>phone</li>
+                      <li>fax (optional)</li>
                     </ul>
                   </div>
                   <div>
