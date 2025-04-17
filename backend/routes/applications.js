@@ -298,4 +298,21 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
+// Add this after the GET route
+router.post('/', auth, async (req, res) => {
+  try {
+    const application = new Application({
+      ...req.body,
+      userId: req.user._id,
+      status: 'pending'
+    });
+    
+    await application.save();
+    res.status(201).json(application);
+  } catch (error) {
+    console.error('Error creating application:', error);
+    res.status(500).json({ message: 'Error creating application', error: error.message });
+  }
+});
+
 module.exports = router; 
