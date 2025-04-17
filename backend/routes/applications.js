@@ -155,7 +155,7 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
         const application = new Application({
           // System fields
           userId: req.user._id,
-          status: record.status?.toLowerCase() === 'complete' ? 'complete' : 'pending',
+          status: record.status?.toLowerCase() === 'complete' ? 'Complete' : 'Pending',
           entryDate: applicationDate,
           createdAt: applicationDate,  // This should now stick due to immutable: true
           
@@ -186,6 +186,11 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
           hotelName: record.hotelName || '',
           hotelConfirmation: record.hotelConfirmation || '',
           additionalInformation: record.additionalInformation || '',
+          
+          // Update administrative fields
+          letterEmailedDate: record.letterEmailedDate ? new Date(record.letterEmailedDate) : undefined,
+          hardCopyMailedDate: record.hardCopyMailedDate ? new Date(record.hardCopyMailedDate) : undefined,
+          addressToMailHardCopy: record.addressToMailHardCopy || '',
           
           // Administrative fields (if provided in the CSV)
           letterEmailed: record.letterEmailed === 'true' || false,
@@ -236,7 +241,8 @@ router.get('/:id', auth, async (req, res) => {
   try {
     const application = await Application.findById(req.params.id)
       .populate('meeting')
-      .populate('userId', 'firstName lastName email');
+      .populate('userId', 'firstName lastName email')
+      .populate('lastUpdatedBy', 'firstName lastName email');
     
     if (!application) {
       return res.status(404).json({ message: 'Application not found' });

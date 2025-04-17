@@ -132,13 +132,8 @@ const applicationSchema = new mongoose.Schema({
     enum: ['Pending','Complete','Rejected'],
     default: 'Pending'
   },
-  letterEmailed: {
-    type: Boolean,
-    default: false
-  },
-  hardCopyMailed: {
-    type: Boolean,
-    default: false
+  letterEmailedDate: {
+    type: Date
   },
   hardCopyMailedDate: {
     type: Date

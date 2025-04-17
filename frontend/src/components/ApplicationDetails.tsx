@@ -34,6 +34,14 @@ interface Application {
     _id: string;
   };
   status: string;
+  letterEmailedDate?: string;
+  hardCopyMailedDate?: string;
+  lastUpdatedBy?: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
   // ... other fields
 }
 
@@ -583,48 +591,47 @@ export default function ApplicationDetails({ isAdmin = false }) {
                     )}
                   </div>
                   <div className="text-left">
-                    <label className="block text-sm font-medium text-gray-700">Letter Emailed</label>
+                    <label className="block text-sm font-medium text-gray-700">Letter Mailed Date</label>
                     {isEditing && isAdminView ? (
                       <input
-                        type="checkbox"
-                        checked={editedFields.letterEmailed || false}
-                        onChange={(e) => handleFieldChange('letterEmailed', e.target.checked)}
-                        className="mt-2"
+                        type="date"
+                        value={editedFields.letterEmailedDate ? formatDateForInput(editedFields.letterEmailedDate) : ''}
+                        onChange={(e) => handleFieldChange('letterEmailedDate', e.target.value)}
+                        className={inputClass}
                       />
                     ) : (
-                      <div className="mt-1">{application.letterEmailed ? 'Yes' : 'No'}</div>
+                      <div className="mt-1">
+                        {application.letterEmailedDate ? formatDate(application.letterEmailedDate) : 'Not mailed yet'}
+                      </div>
                     )}
                   </div>
                   <div className="text-left">
-                    <label className="block text-sm font-medium text-gray-700">Hard Copy Mailed</label>
+                    <label className="block text-sm font-medium text-gray-700">Hard Copy Mailed Date</label>
                     {isEditing && isAdminView ? (
                       <input
-                        type="checkbox"
-                        checked={editedFields.hardCopyMailed || false}
-                        onChange={(e) => handleFieldChange('hardCopyMailed', e.target.checked)}
-                        className="mt-2"
+                        type="date"
+                        value={editedFields.hardCopyMailedDate ? formatDateForInput(editedFields.hardCopyMailedDate) : ''}
+                        onChange={(e) => handleFieldChange('hardCopyMailedDate', e.target.value)}
+                        className={inputClass}
                       />
                     ) : (
-                      <div className="mt-1">{application.hardCopyMailed ? 'Yes' : 'No'}</div>
+                      <div className="mt-1">
+                        {application.hardCopyMailedDate ? formatDate(application.hardCopyMailedDate) : 'Not mailed yet'}
+                      </div>
                     )}
                   </div>
-                  {(application.hardCopyMailed || isAdminView) && (
-                    <div className="text-left">
-                      <label className="block text-sm font-medium text-gray-700">Hard Copy Mailed Date</label>
-                      {isEditing && isAdminView ? (
-                        <input
-                          type="date"
-                          value={editedFields.hardCopyMailedDate?.split('T')[0] || ''}
-                          onChange={(e) => handleFieldChange('hardCopyMailedDate', e.target.value)}
-                          className={inputClass}
-                        />
+                  <div className="text-left">
+                    <label className="block text-sm font-medium text-gray-700">Last Updated By</label>
+                    <div className="mt-1">
+                      {application.lastUpdatedBy ? (
+                        <span>
+                          {application.lastUpdatedBy.firstName} {application.lastUpdatedBy.lastName} ({application.lastUpdatedBy.email})
+                        </span>
                       ) : (
-                        <div className="mt-1">
-                          {application.hardCopyMailedDate ? formatDate(application.hardCopyMailedDate) : ''}
-                        </div>
+                        'N/A'
                       )}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             </div>

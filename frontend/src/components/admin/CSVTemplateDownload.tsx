@@ -28,8 +28,7 @@ export default function CSVTemplateDownload() {
     'additionalInformation',
     'meetingName',  // Changed from meetingId to meetingName
     'status',
-    'letterEmailed',
-    'hardCopyMailed',
+    'letterMailedDate',
     'hardCopyMailedDate',
     'addressToMailHardCopy'
   ];
@@ -61,9 +60,9 @@ export default function CSVTemplateDownload() {
     'No special requirements',
     'Calgary 2026',  // Use the actual meeting name
     'pending',
-    false,
-    false,
-    undefined,
+    '',
+    '',
+    '',
     ''
   ];
 
