@@ -149,14 +149,10 @@ export const auth = {
 // Applications endpoints
 export const applications = {
   create: async (data: Partial<Application>): Promise<Application> => {
-    const response = await fetch(`${API_URL}/api/applications`, {
+    return apiRequest('/api/applications', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
+      body: data
     });
-    return handleResponse(response);
   },
     
   getAll: () => 
