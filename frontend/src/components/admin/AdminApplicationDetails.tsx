@@ -18,6 +18,8 @@ export default function AdminApplicationDetails() {
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(true); // Always in edit mode for admin
 
+  const inputClass = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500";
+
   useEffect(() => {
     const fetchApplication = async () => {
       try {
@@ -43,8 +45,6 @@ export default function AdminApplicationDetails() {
   };
 
   const renderField = (field: ApplicationField) => {
-    const inputClass = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500";
-
     switch (field.type) {
       case 'date':
         return (
