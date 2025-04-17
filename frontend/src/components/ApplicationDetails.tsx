@@ -2,19 +2,11 @@ import { useParams, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Header from './common/Header';
 import { applications as applicationsApi } from '../utils/api';
+import { countries } from '../utils/countries';
 
 // Constants
 const GENDER_OPTIONS = ['Male', 'Female', 'Other', 'Prefer not to say'];
-const US_STATES = [
-  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DC', 'DE', 'FL', 'GA',
-  'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 
-  'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 
-  'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 
-  'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
-];
-const COUNTRIES = ['US', 'CA', 'GB', 'FR', 'DE', 'IT', 'ES', 'AU', 'JP', 'CN'];
 const APPLICATION_STATUSES = ['Pending', 'Complete', 'Rejected'];
-const MEETING_OPTIONS = ['Dallas 2025', 'Calgary 2026'];
 
 interface ApplicationField {
   name: string;
@@ -400,7 +392,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
                       value: application.issuingCountry,
                       type: 'select',
                       editable: true,
-                      options: COUNTRIES
+                      options: countries.map(c => ({ value: c.value, label: c.label }))
                     })}
                   </div>
                   <div className="text-left">
@@ -508,8 +500,8 @@ export default function ApplicationDetails({ isAdmin = false }) {
                           onChange={(e) => handleFieldChange('country', e.target.value)}
                           className={inputClass}
                         >
-                          {COUNTRIES.map(option => (
-                            <option key={option} value={option}>{option}</option>
+                          {countries.map(country => (
+                            <option key={country.value} value={country.value}>{country.label}</option>
                           ))}
                         </select>
                       </div>
@@ -652,7 +644,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
                     <div className="mt-1">
                       {application.lastUpdatedBy ? (
                         <span className="text-gray-900">
-                          {application.lastUpdatedBy.firstName} {application.lastUpdatedBy.lastName}
+                          {`${application.lastUpdatedBy.firstName} ${application.lastUpdatedBy.lastName}`}
                           <span className="text-gray-500 text-sm ml-1">({application.lastUpdatedBy.email})</span>
                         </span>
                       ) : (
