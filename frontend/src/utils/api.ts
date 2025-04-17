@@ -164,6 +164,40 @@ export const auth = {
       method: 'POST',
       body: { currentPassword, newPassword }
     });
+  },
+
+  changeUserPassword: async (userId: string, newPassword: string) => {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${userId}/password`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ password: newPassword })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to change password');
+    }
+
+    return response.json();
+  },
+
+  updateUser: async (userId: string, userData: { firstName: string; lastName: string; email: string }) => {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(userData)
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update user');
+    }
+
+    return response.json();
   }
 };
 

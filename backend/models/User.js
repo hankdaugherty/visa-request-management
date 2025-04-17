@@ -44,7 +44,13 @@ const userSchema = new mongoose.Schema({
     immutable: true
   },
   resetToken: String,
-  resetTokenExpiry: Date
+  resetTokenExpiry: Date,
+  isAdmin: {
+    type: Boolean,
+    default: false
+  }
+}, {
+  timestamps: true
 });
 
 // Method to compare password

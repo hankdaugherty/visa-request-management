@@ -10,6 +10,10 @@ interface UserActionsMenuProps {
     onEdit: () => void;
 }
 
+function isUserAdmin(user: User): boolean {
+    return user.isAdmin || user.role === 'admin';
+}
+
 export function UserActionsMenu({
     user,
     onToggleAdmin,
@@ -17,6 +21,8 @@ export function UserActionsMenu({
     onChangePassword,
     onEdit,
 }: UserActionsMenuProps) {
+    const currentRole = isUserAdmin(user) ? 'admin' : 'user';
+
     return (
         <div className="relative inline-block text-right">
             <Menu as="div" className="relative inline-block text-left">
@@ -58,7 +64,7 @@ export function UserActionsMenu({
                                             active ? 'bg-gray-100' : ''
                                         } flex w-full items-center px-4 py-2 text-sm text-gray-700`}
                                     >
-                                        Toggle Admin (currently {user.isAdmin ? 'admin' : 'user'})
+                                        Toggle Admin (currently {currentRole})
                                     </button>
                                 )}
                             </Menu.Item>
