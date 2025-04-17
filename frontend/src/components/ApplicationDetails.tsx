@@ -250,6 +250,25 @@ export default function ApplicationDetails({ isAdmin = false }) {
     }
   };
 
+  // Add a new function to format the address
+  const formatAddress = (address: {
+    companyMailingAddress1: string;
+    companyMailingAddress2?: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+  }) => {
+    const lines = [
+      address.companyMailingAddress1,
+      address.companyMailingAddress2,
+      `${address.city}, ${address.state} ${address.postalCode}`,
+      address.country
+    ].filter(line => line && line.trim()); // Remove empty lines
+
+    return lines;
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="text-red-600">{error}</div>;
   if (!application) return <div>Application not found</div>;
@@ -443,56 +462,64 @@ export default function ApplicationDetails({ isAdmin = false }) {
                       editable: true
                     })}
                   </div>
-                  <div className="col-span-2">
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Company Address</label>
-                    <div className="max-w-md">
-                      {renderField({
-                        name: 'companyMailingAddress1',
-                        value: application.companyMailingAddress1,
-                        type: 'text',
-                        editable: true
-                      })}
-                      {renderField({
-                        name: 'companyMailingAddress2',
-                        value: application.companyMailingAddress2,
-                        type: 'text',
-                        editable: true
-                      })}
-                      <div className="flex gap-1">
-                        <div className="w-48">
-                          {renderField({
-                            name: 'city',
-                            value: application.city,
-                            type: 'text',
-                            editable: true
-                          })}
+                    {isEditing ? (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={editedFields.companyMailingAddress1 || ''}
+                          onChange={(e) => handleFieldChange('companyMailingAddress1', e.target.value)}
+                          placeholder="Address Line 1"
+                          className={inputClass}
+                        />
+                        <input
+                          type="text"
+                          value={editedFields.companyMailingAddress2 || ''}
+                          onChange={(e) => handleFieldChange('companyMailingAddress2', e.target.value)}
+                          placeholder="Address Line 2 (optional)"
+                          className={inputClass}
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="text"
+                            value={editedFields.city || ''}
+                            onChange={(e) => handleFieldChange('city', e.target.value)}
+                            placeholder="City"
+                            className={inputClass}
+                          />
+                          <input
+                            type="text"
+                            value={editedFields.state || ''}
+                            onChange={(e) => handleFieldChange('state', e.target.value)}
+                            placeholder="State/Province/Region"
+                            className={inputClass}
+                          />
                         </div>
-                        <div className="w-16">
-                          {renderField({
-                            name: 'state',
-                            value: application.state,
-                            type: 'select',
-                            editable: true,
-                            options: US_STATES
-                          })}
-                        </div>
-                        <div className="w-24">
-                          {renderField({
-                            name: 'postalCode',
-                            value: application.postalCode,
-                            type: 'text',
-                            editable: true
-                          })}
-                        </div>
+                        <input
+                          type="text"
+                          value={editedFields.postalCode || ''}
+                          onChange={(e) => handleFieldChange('postalCode', e.target.value)}
+                          placeholder="Postal Code"
+                          className={inputClass}
+                        />
+                        <select
+                          value={editedFields.country || ''}
+                          onChange={(e) => handleFieldChange('country', e.target.value)}
+                          className={inputClass}
+                        >
+                          {COUNTRIES.map(option => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
                       </div>
-                      {renderField({
-                        name: 'country',
-                        value: application.country,
-                        type: 'select',
-                        editable: true,
-                        options: COUNTRIES
-                      })}
-                    </div>
+                    ) : (
+                      <div className="mt-1 space-y-1">
+                        {formatAddress(application).map((line, index) => (
+                          <div key={index} className="text-gray-900">{line}</div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -624,11 +651,12 @@ export default function ApplicationDetails({ isAdmin = false }) {
                     <label className="block text-sm font-medium text-gray-700">Last Updated By</label>
                     <div className="mt-1">
                       {application.lastUpdatedBy ? (
-                        <span>
-                          {application.lastUpdatedBy.firstName} {application.lastUpdatedBy.lastName} ({application.lastUpdatedBy.email})
+                        <span className="text-gray-900">
+                          {application.lastUpdatedBy.firstName} {application.lastUpdatedBy.lastName}
+                          <span className="text-gray-500 text-sm ml-1">({application.lastUpdatedBy.email})</span>
                         </span>
                       ) : (
-                        'N/A'
+                        <span className="text-gray-500">Not updated since creation</span>
                       )}
                     </div>
                   </div>
