@@ -23,8 +23,7 @@ app.use(cors({
     const allowedOrigins = [
       'http://localhost:5173',
       'https://3gpp-visa-letter-request-portal.vercel.app',
-      'https://3gpp-visa-letter-request-portal-git-main.vercel.app',
-      'https://3gpp-visa-letter-request-portal-evuexjtvw.vercel.app'
+      'https://visas.3gppmeetings.atis.org'
     ];
     
     // Allow requests with no origin (like mobile apps or curl requests)
