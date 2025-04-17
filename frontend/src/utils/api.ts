@@ -143,6 +143,27 @@ export const auth = {
     return await apiRequest(`/api/users/${userId}`, {
       method: 'DELETE'
     });
+  },
+
+  requestPasswordReset: async (email: string) => {
+    return await apiRequest('api/auth/forgot-password', {
+      method: 'POST',
+      body: { email }
+    });
+  },
+
+  resetPassword: async (token: string, password: string) => {
+    return await apiRequest(`api/auth/reset-password/${token}`, {
+      method: 'POST',
+      body: { password }
+    });
+  },
+
+  changePassword: async (currentPassword: string, newPassword: string) => {
+    return await apiRequest('api/auth/change-password', {
+      method: 'POST',
+      body: { currentPassword, newPassword }
+    });
   }
 };
 
