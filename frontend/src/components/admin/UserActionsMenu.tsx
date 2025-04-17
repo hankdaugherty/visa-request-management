@@ -1,7 +1,30 @@
-import { Menu } from '@headlessui/react'
+import { Menu, Transition } from '@headlessui/react'
 import { EllipsisVerticalIcon } from '@heroicons/react/24/solid';
+import { Fragment } from 'react';
+import { User } from '../../types';
 
-export default function UserActionsMenu({ user, onToggleAdmin, onDelete, onChangePassword, onEdit }) {
+function getUserRole(user: User): 'admin' | 'user' {
+    return user.isAdmin ? 'admin' : 'user';
+}
+
+interface UserActionsMenuProps {
+    user: User;
+    onToggleAdmin: () => void;
+    onDelete: () => void;
+    onChangePassword: () => void;
+    onEdit: () => void;
+}
+
+export function UserActionsMenu({
+    user,
+    onToggleAdmin,
+    onDelete,
+    onChangePassword,
+    onEdit,
+}: UserActionsMenuProps) {
+    const currentRole = getUserRole(user);
+    const toggleText = `Toggle Admin (currently ${currentRole})`;
+
     return (
         <Menu as="div" className="relative inline-block text-left">
             <div>
@@ -10,57 +33,68 @@ export default function UserActionsMenu({ user, onToggleAdmin, onDelete, onChang
                 </Menu.Button>
             </div>
 
-            <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                <div className="py-1">
-                    <Menu.Item>
-                        {({ active }) => (
-                            <button
-                                onClick={onToggleAdmin}
-                                className={`${active ? 'bg-gray-100' : ''
-                                    } block w-full px-4 py-2 text-sm text-gray-700 text-left`}
-                            >
-                                {user.role === 'admin' ? 'Revoke Admin' : 'Make Admin'}
-                            </button>
-                        )}
-                    </Menu.Item>
-
-                    <Menu.Item>
-                        {({ active }) => (
-                            <button
-                                onClick={onChangePassword}
-                                className={`${active ? 'bg-gray-100' : ''
-                                    } block w-full px-4 py-2 text-sm text-gray-700 text-left`}
-                            >
-                                Change Password
-                            </button>
-                        )}
-                    </Menu.Item>
-
-                    <Menu.Item>
-                        {({ active }) => (
-                            <button
-                                onClick={onEdit}
-                                className={`${active ? 'bg-gray-100' : ''
-                                    } block w-full px-4 py-2 text-sm text-gray-700 text-left`}
-                            >
-                                Edit Account Details
-                            </button>
-                        )}
-                    </Menu.Item>
-
-                    <Menu.Item>
-                        {({ active }) => (
-                            <button
-                                onClick={onDelete}
-                                className={`${active ? 'bg-red-100 text-red-700' : 'text-red-600'
-                                    } block w-full px-4 py-2 text-sm text-left`}
-                            >
-                                Delete User
-                            </button>
-                        )}
-                    </Menu.Item>
-                </div>
-            </Menu.Items>
+            <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="transform opacity-0 scale-95"
+                enterTo="transform opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="transform opacity-100 scale-100"
+                leaveTo="transform opacity-0 scale-95"
+            >
+                <Menu.Items className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-10">
+                    <div className="py-1">
+                        <Menu.Item>
+                            {({ active }) => (
+                                <button
+                                    onClick={onEdit}
+                                    className={`${
+                                        active ? 'bg-gray-100' : ''
+                                    } w-full text-left px-4 py-2 text-sm text-gray-700`}
+                                >
+                                    Edit Account Details
+                                </button>
+                            )}
+                        </Menu.Item>
+                        <Menu.Item>
+                            {({ active }) => (
+                                <button
+                                    onClick={onToggleAdmin}
+                                    className={`${
+                                        active ? 'bg-gray-100' : ''
+                                    } w-full text-left px-4 py-2 text-sm text-gray-700`}
+                                >
+                                    {toggleText}
+                                </button>
+                            )}
+                        </Menu.Item>
+                        <Menu.Item>
+                            {({ active }) => (
+                                <button
+                                    onClick={onChangePassword}
+                                    className={`${
+                                        active ? 'bg-gray-100' : ''
+                                    } w-full text-left px-4 py-2 text-sm text-gray-700`}
+                                >
+                                    Change Password
+                                </button>
+                            )}
+                        </Menu.Item>
+                        <Menu.Item>
+                            {({ active }) => (
+                                <button
+                                    onClick={onDelete}
+                                    className={`${
+                                        active ? 'bg-red-100' : ''
+                                    } w-full text-left px-4 py-2 text-sm text-red-700`}
+                                >
+                                    Delete User
+                                </button>
+                            )}
+                        </Menu.Item>
+                    </div>
+                </Menu.Items>
+            </Transition>
         </Menu>
     );
 }
