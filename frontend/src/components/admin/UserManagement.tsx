@@ -3,7 +3,7 @@ import { auth } from '../../utils/api';
 import { Modal } from '../common/Modal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import ResponsiveTable from '../common/ResponsiveTable';
-import UserActionsMenu from './UserActionsMenu';
+import { UserActionsMenu } from './UserActionsMenu';
 
 
 interface User {
