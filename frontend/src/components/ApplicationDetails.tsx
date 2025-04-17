@@ -94,17 +94,16 @@ export default function ApplicationDetails({ isAdmin = false }) {
 
   const handleSave = async () => {
     try {
-      // Ensure all date fields are in ISO format
+      // Format dates properly before sending to the backend
       const updates = {
         ...editedFields,
-        // Explicitly include the fields that aren't persisting
-        issuingCountry: editedFields.issuingCountry,
+        // Convert date strings to ISO format
+        birthdate: editedFields.birthdate ? new Date(editedFields.birthdate).toISOString() : null,
+        passportExpirationDate: editedFields.passportExpirationDate ? new Date(editedFields.passportExpirationDate).toISOString() : null,
         dateOfArrival: editedFields.dateOfArrival ? new Date(editedFields.dateOfArrival).toISOString() : null,
         dateOfDeparture: editedFields.dateOfDeparture ? new Date(editedFields.dateOfDeparture).toISOString() : null,
         updatedAt: new Date().toISOString()
       };
-
-      console.log('Saving updates:', updates); // Add this for debugging
 
       const updatedApplication = await applicationsApi.update(id, updates);
       
@@ -112,13 +111,9 @@ export default function ApplicationDetails({ isAdmin = false }) {
       const mergedApplication = {
         ...application,
         ...updatedApplication,
-        userId: application?.userId, // Keep the original userId object
+        userId: application?.userId,
         status: updatedApplication.status || application?.status,
         meeting: updatedApplication.meeting || application?.meeting,
-        // Explicitly preserve these fields from the update
-        issuingCountry: updates.issuingCountry,
-        dateOfArrival: updates.dateOfArrival,
-        dateOfDeparture: updates.dateOfDeparture
       };
 
       setApplication(mergedApplication);
@@ -179,19 +174,25 @@ export default function ApplicationDetails({ isAdmin = false }) {
   const inputClass = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500";
 
   const renderField = (field: ApplicationField) => {
-    if (!field.editable && !isEditing) {
+    const inputClass = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500";
+
+    // If not in edit mode or field is not editable, show read-only view
+    if (!isEditing || !field.editable) {
       if (field.type === 'date') {
         return <div className="mt-1">{field.value ? formatDate(field.value as string) : ''}</div>;
       }
       return <div className="mt-1">{field.value?.toString()}</div>;
     }
 
+    // In edit mode, show appropriate input
     switch (field.type) {
       case 'date':
+        // Convert ISO date string to YYYY-MM-DD format for date input
+        const dateValue = field.value ? new Date(field.value as string).toISOString().split('T')[0] : '';
         return (
           <input
             type="date"
-            value={editedFields[field.name] || ''}
+            value={dateValue}
             onChange={(e) => handleFieldChange(field.name, e.target.value)}
             className={inputClass}
           />
@@ -246,7 +247,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
 
             {/* White box container */}
             <div className="bg-white shadow rounded-lg">
-              {/* Action buttons in the top right */}
+              {/* Action buttons - show for both admin and regular users when they can edit */}
               <div className="flex justify-end p-4">
                 {canEdit() && (
                   isEditing ? (
@@ -258,7 +259,10 @@ export default function ApplicationDetails({ isAdmin = false }) {
                         Save
                       </button>
                       <button
-                        onClick={() => setIsEditing(false)}
+                        onClick={() => {
+                          setIsEditing(false);
+                          setEditedFields(application); // Reset fields on cancel
+                        }}
                         className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300"
                       >
                         Cancel
