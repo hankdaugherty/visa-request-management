@@ -365,7 +365,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-lg font-semibold mb-4">Passport Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Passport Number</label>
                     {renderField({
                       name: 'passportNumber',
@@ -374,7 +374,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
                       editable: true
                     })}
                   </div>
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Issuing Country</label>
                     {renderField({
                       name: 'issuingCountry',
@@ -384,7 +384,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
                       options: COUNTRIES
                     })}
                   </div>
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Expiration Date</label>
                     {renderField({
                       name: 'passportExpirationDate',
@@ -400,7 +400,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-lg font-semibold mb-4">Travel Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Arrival Date</label>
                     {renderField({
                       name: 'dateOfArrival',
@@ -409,7 +409,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
                       editable: true
                     })}
                   </div>
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Departure Date</label>
                     {renderField({
                       name: 'dateOfDeparture',
@@ -425,7 +425,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-lg font-semibold mb-4">Company Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Company Name</label>
                     {renderField({
                       name: 'companyName',
@@ -434,7 +434,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
                       editable: true
                     })}
                   </div>
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Position</label>
                     {renderField({
                       name: 'position',
@@ -501,7 +501,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-lg font-semibold mb-4">Contact Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Phone</label>
                     {renderField({
                       name: 'phone',
@@ -511,7 +511,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
                     })}
                   </div>
                   {application?.fax && (
-                    <div>
+                    <div className="text-left">
                       <label className="block text-sm font-medium text-gray-700">Fax</label>
                       {renderField({
                         name: 'fax',
@@ -529,7 +529,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
                 <div className="p-6 border-b border-gray-200">
                   <h2 className="text-lg font-semibold mb-4">Hotel Information</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
+                    <div className="text-left">
                       <label className="block text-sm font-medium text-gray-700">Hotel Name</label>
                       {renderField({
                         name: 'hotelName',
@@ -538,7 +538,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
                         editable: true
                       })}
                     </div>
-                    <div>
+                    <div className="text-left">
                       <label className="block text-sm font-medium text-gray-700">Confirmation Number</label>
                       {renderField({
                         name: 'hotelConfirmation',
@@ -566,15 +566,15 @@ export default function ApplicationDetails({ isAdmin = false }) {
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-lg font-semibold mb-4">Application Status</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Created At</label>
                     <div className="mt-1">{formatDateWithTime(application.createdAt)}</div>
                   </div>
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Last Updated</label>
                     <div className="mt-1">{formatDateWithTime(application.updatedAt)}</div>
                   </div>
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Application Status</label>
                     {isEditing && isAdminView ? (
                       <select
@@ -590,7 +590,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
                       <div className="mt-1">{application.status}</div>
                     )}
                   </div>
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Letter Emailed</label>
                     {isEditing && isAdminView ? (
                       <input
@@ -603,7 +603,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
                       <div className="mt-1">{application.letterEmailed ? 'Yes' : 'No'}</div>
                     )}
                   </div>
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Hard Copy Mailed</label>
                     {isEditing && isAdminView ? (
                       <input
@@ -617,7 +617,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
                     )}
                   </div>
                   {(application.hardCopyMailed || isAdminView) && (
-                    <div>
+                    <div className="text-left">
                       <label className="block text-sm font-medium text-gray-700">Hard Copy Mailed Date</label>
                       {isEditing && isAdminView ? (
                         <input
