@@ -3,6 +3,7 @@ import { auth } from '../../utils/api';
 import { Modal } from '../common/Modal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import ResponsiveTable from '../common/ResponsiveTable';
+import { UserActionsMenu } from './UserActionsMenu';
 
 interface User {
   _id: string;
@@ -10,6 +11,15 @@ interface User {
   lastName: string;
   email: string;
   role: 'user' | 'admin';
+  isAdmin: boolean;
+}
+
+// Add a type guard to ensure we have the role property
+function ensureUserRole(user: User): User & { role: 'user' | 'admin' } {
+  return {
+    ...user,
+    role: user.isAdmin ? 'admin' : 'user'
+  };
 }
 
 export default function UserManagement() {
@@ -59,7 +69,9 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     try {
       const response = await auth.getUsers();
-      setUsers(response);
+      // Transform the users to ensure they have the role property
+      const usersWithRole = response.map(ensureUserRole);
+      setUsers(usersWithRole);
     } catch (error) {
       setError('Failed to fetch users');
     }
@@ -113,6 +125,28 @@ export default function UserManagement() {
     } catch (error) {
       setError('Failed to delete user');
     }
+  };
+
+  const toggleAdmin = async (userId: string) => {
+    const user = users.find(u => u._id === userId);
+    if (!user) return;
+    await handleToggleAdmin(userId, user.role !== 'admin');
+  };
+
+  const deleteUser = async (userId: string) => {
+    const user = users.find(u => u._id === userId);
+    if (!user) return;
+    handleDelete(user);
+  };
+
+  const openPasswordModal = (user: User) => {
+    // TODO: Implement password change functionality
+    console.log('Change password for user:', user);
+  };
+
+  const openEditModal = (user: User) => {
+    // TODO: Implement edit user functionality
+    console.log('Edit user:', user);
   };
 
   // Pagination calculations
@@ -237,20 +271,13 @@ export default function UserManagement() {
                   </span>
                 </td>
                 <td className="px-3 lg:px-6 py-4 whitespace-nowrap text-right text-sm">
-                  <div className="flex flex-col lg:flex-row justify-end gap-2">
-                    <button
-                      onClick={() => handleToggleAdmin(user._id, user.role !== 'admin')}
-                      className="inline-flex items-center px-2 lg:px-3 py-1 lg:py-2 border border-transparent text-xs lg:text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      Toggle Admin
-                    </button>
-                    <button
-                      onClick={() => handleDelete(user)}
-                      className="inline-flex items-center px-2 lg:px-3 py-1 lg:py-2 border border-transparent text-xs lg:text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  <UserActionsMenu
+                    user={user}
+                    onToggleAdmin={() => toggleAdmin(user._id)}
+                    onDelete={() => deleteUser(user._id)}
+                    onChangePassword={() => openPasswordModal(user)}
+                    onEdit={() => openEditModal(user)}
+                  />
                 </td>
               </tr>
             ))}
