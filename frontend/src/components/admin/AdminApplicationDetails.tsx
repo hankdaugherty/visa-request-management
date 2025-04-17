@@ -3,11 +3,20 @@ import { useState, useEffect } from 'react';
 import Header from '../common/Header';
 import { applications as applicationsApi } from '../../utils/api';
 
+interface ApplicationField {
+  name: string;
+  value: string | boolean;
+  type: 'text' | 'date' | 'select' | 'checkbox';
+  editable: boolean;
+  options?: string[];
+}
+
 export default function AdminApplicationDetails() {
   const { id } = useParams();
   const [application, setApplication] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isEditing, setIsEditing] = useState(true); // Always in edit mode for admin
 
   useEffect(() => {
     const fetchApplication = async () => {
@@ -24,25 +33,58 @@ export default function AdminApplicationDetails() {
     fetchApplication();
   }, [id]);
 
-  const handleEdit = async (field, value) => {
+  const handleEdit = async (field: string, value: any) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/applications/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ [field]: value })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update application');
-      }
-
-      const updatedApp = await response.json();
-      setApplication(updatedApp);
+      const response = await applicationsApi.update(id, { [field]: value });
+      setApplication(response);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const renderField = (field: ApplicationField) => {
+    const inputClass = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500";
+
+    switch (field.type) {
+      case 'date':
+        return (
+          <input
+            type="date"
+            value={field.value || ''}
+            onChange={(e) => handleEdit(field.name, e.target.value)}
+            className={inputClass}
+          />
+        );
+      case 'checkbox':
+        return (
+          <input
+            type="checkbox"
+            checked={field.value as boolean}
+            onChange={(e) => handleEdit(field.name, e.target.checked)}
+            className="mt-1"
+          />
+        );
+      case 'select':
+        return (
+          <select
+            value={field.value as string}
+            onChange={(e) => handleEdit(field.name, e.target.value)}
+            className={inputClass}
+          >
+            {field.options?.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        );
+      default:
+        return (
+          <input
+            type={field.type}
+            value={field.value as string}
+            onChange={(e) => handleEdit(field.name, e.target.value)}
+            className={inputClass}
+          />
+        );
     }
   };
 
@@ -54,49 +96,79 @@ export default function AdminApplicationDetails() {
     <>
       <Header />
       <main className="bg-[#F9FAFB] min-h-screen">
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-2xl font-bold mb-4">Application Details</h1>
-          <div className="bg-white shadow rounded-lg p-6">
-            <div>
-              <p>Name: {`${application.firstName} ${application.lastName}`}</p>
-              <p>Email: {application.email}</p>
-              <div>
-                <label>Letter Emailed:</label>
-                <select
-                  value={application.letterEmailed ? 'Yes' : 'No'}
-                  onChange={(e) => handleEdit('letterEmailed', e.target.value === 'Yes')}
-                >
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
-                </select>
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto py-8">
+            <div className="text-left mb-8">
+              <h1 className="text-2xl font-bold mb-2">Application Details</h1>
+            </div>
+
+            <div className="bg-white shadow rounded-lg">
+              {/* Meeting Information */}
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-lg font-semibold mb-4 text-left">Meeting Information</h2>
+                <div className="text-left">
+                  <label className="block text-sm font-medium text-gray-700">Meeting</label>
+                  <div className="mt-1">{application.meeting?.name}</div>
+                </div>
               </div>
-              <div>
-                <label>Hard Copy Mailed:</label>
-                <select
-                  value={application.hardCopyMailed ? 'Yes' : 'No'}
-                  onChange={(e) => handleEdit('hardCopyMailed', e.target.value === 'Yes')}
-                >
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
-                </select>
+
+              {/* Application Status */}
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-lg font-semibold mb-4 text-left">Application Status</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="text-left">
+                    <label className="block text-sm font-medium text-gray-700">Status</label>
+                    {renderField({
+                      name: 'status',
+                      value: application.status,
+                      type: 'select',
+                      editable: true,
+                      options: ['pending', 'complete']
+                    })}
+                  </div>
+                  <div className="text-left">
+                    <label className="block text-sm font-medium text-gray-700">Letter Emailed</label>
+                    {renderField({
+                      name: 'letterEmailed',
+                      value: application.letterEmailed,
+                      type: 'checkbox',
+                      editable: true
+                    })}
+                  </div>
+                  <div className="text-left">
+                    <label className="block text-sm font-medium text-gray-700">Hard Copy Mailed</label>
+                    {renderField({
+                      name: 'hardCopyMailed',
+                      value: application.hardCopyMailed,
+                      type: 'checkbox',
+                      editable: true
+                    })}
+                  </div>
+                  <div className="text-left">
+                    <label className="block text-sm font-medium text-gray-700">Hard Copy Mailed Date</label>
+                    {renderField({
+                      name: 'hardCopyMailedDate',
+                      value: application.hardCopyMailedDate ? new Date(application.hardCopyMailedDate).toISOString().split('T')[0] : '',
+                      type: 'date',
+                      editable: true
+                    })}
+                  </div>
+                </div>
               </div>
-              <div>
-                <label>Hard Copy Mailed Date:</label>
-                <input
-                  type="date"
-                  value={application.hardCopyMailedDate ? new Date(application.hardCopyMailedDate).toISOString().split('T')[0] : ''}
-                  onChange={(e) => handleEdit('hardCopyMailedDate', e.target.value)}
-                />
-              </div>
-              <div>
-                <label>Status:</label>
-                <select
-                  value={application.status}
-                  onChange={(e) => handleEdit('status', e.target.value)}
-                >
-                  <option value="pending">Pending</option>
-                  <option value="complete">Complete</option>
-                </select>
+
+              {/* Personal Information (read-only) */}
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-lg font-semibold mb-4 text-left">Personal Information</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="text-left">
+                    <label className="block text-sm font-medium text-gray-700">Name</label>
+                    <div className="mt-1">{`${application.firstName} ${application.lastName}`}</div>
+                  </div>
+                  <div className="text-left">
+                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                    <div className="mt-1">{application.email}</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
