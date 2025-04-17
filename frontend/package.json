@@ -11,6 +11,7 @@
     "tailwind:init": "tailwindcss init -p"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.2",
     "date-fns": "^2.30.0",
     "jwt-decode": "^4.0.0",
     "react": "^18.2.0",
