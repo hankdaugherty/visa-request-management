@@ -58,4 +58,22 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
+// Add this pre-save middleware to keep isAdmin and role in sync
+userSchema.pre('save', function(next) {
+  // Update isAdmin based on role
+  this.isAdmin = this.role === 'admin';
+  next();
+});
+
+// Add this pre-update middleware to keep isAdmin and role in sync
+userSchema.pre('findOneAndUpdate', function(next) {
+  const update = this.getUpdate();
+  if (update.role) {
+    update.isAdmin = update.role === 'admin';
+  } else if (update.isAdmin !== undefined) {
+    update.role = update.isAdmin ? 'admin' : 'user';
+  }
+  next();
+});
+
 module.exports = mongoose.model('User', userSchema); 
