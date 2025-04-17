@@ -1,106 +1,70 @@
-import { useState, useRef, useEffect } from 'react';
-import { User } from '../../types';
+import { Menu } from '@headlessui/react'
+import { DotsVerticalIcon } from '@heroicons/react/solid'
 
-interface UserActionsMenuProps {
-  user: User;
-  onToggleAdmin: () => void;
-  onDelete: () => void;
-  onChangePassword: () => void;
-  onEdit: () => void;
-}
-
-export function UserActionsMenu({
-  user,
-  onToggleAdmin,
-  onDelete,
-  onChangePassword,
-  onEdit,
-}: UserActionsMenuProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  const toggleMenu = () => setIsOpen(!isOpen);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
+export default function UserActionsMenu({ user, onToggleAdmin, onDelete, onChangePassword, onEdit }) {
   return (
-    <div className="relative" ref={menuRef}>
-      <button
-        onClick={toggleMenu}
-        className="inline-flex items-center px-2 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-      >
-        <span>Actions</span>
-        <svg
-          className="ml-2 h-5 w-5"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-        >
-          <path
-            fillRule="evenodd"
-            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-            clipRule="evenodd"
-          />
-        </svg>
-      </button>
+    <Menu as="div" className="relative inline-block text-left">
+      <div>
+        <Menu.Button className="inline-flex justify-center w-full rounded-md p-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus:outline-none">
+          <DotsVerticalIcon className="h-5 w-5" />
+        </Menu.Button>
+      </div>
 
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-          <div className="py-1" role="menu">
-            <button
-              onClick={() => {
-                onEdit();
-                setIsOpen(false);
-              }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              role="menuitem"
-            >
-              Edit User
-            </button>
-            <button
-              onClick={() => {
-                onToggleAdmin();
-                setIsOpen(false);
-              }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              role="menuitem"
-            >
-              {user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
-            </button>
-            <button
-              onClick={() => {
-                onChangePassword();
-                setIsOpen(false);
-              }}
-              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              role="menuitem"
-            >
-              Change Password
-            </button>
-            <button
-              onClick={() => {
-                onDelete();
-                setIsOpen(false);
-              }}
-              className="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-100"
-              role="menuitem"
-            >
-              Delete User
-            </button>
-          </div>
+      <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+        <div className="py-1">
+          <Menu.Item>
+            {({ active }) => (
+              <button
+                onClick={onToggleAdmin}
+                className={`${
+                  active ? 'bg-gray-100' : ''
+                } block w-full px-4 py-2 text-sm text-gray-700 text-left`}
+              >
+                {user.role === 'admin' ? 'Revoke Admin' : 'Make Admin'}
+              </button>
+            )}
+          </Menu.Item>
+
+          <Menu.Item>
+            {({ active }) => (
+              <button
+                onClick={onChangePassword}
+                className={`${
+                  active ? 'bg-gray-100' : ''
+                } block w-full px-4 py-2 text-sm text-gray-700 text-left`}
+              >
+                Change Password
+              </button>
+            )}
+          </Menu.Item>
+
+          <Menu.Item>
+            {({ active }) => (
+              <button
+                onClick={onEdit}
+                className={`${
+                  active ? 'bg-gray-100' : ''
+                } block w-full px-4 py-2 text-sm text-gray-700 text-left`}
+              >
+                Edit Account Details
+              </button>
+            )}
+          </Menu.Item>
+
+          <Menu.Item>
+            {({ active }) => (
+              <button
+                onClick={onDelete}
+                className={`${
+                  active ? 'bg-red-100 text-red-700' : 'text-red-600'
+                } block w-full px-4 py-2 text-sm text-left`}
+              >
+                Delete User
+              </button>
+            )}
+          </Menu.Item>
         </div>
-      )}
-    </div>
+      </Menu.Items>
+    </Menu>
   );
 }

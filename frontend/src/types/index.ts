@@ -39,7 +39,6 @@ export interface User {
   firstName: string;
   lastName: string;
   isAdmin: boolean;
-  role?: 'user' | 'admin';
 }
 
 export interface Meeting {
