@@ -261,75 +261,102 @@ export default function ApplicationDetails({ isAdmin = false }) {
       <main className="bg-[#F9FAFB] min-h-screen">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto py-8">
+            {/* Title section outside the white box */}
+            <div className="text-left mb-8">
+              <h1 className="text-2xl font-bold mb-2">Application Details</h1>
+            </div>
+
+            {/* White box container */}
             <div className="bg-white shadow rounded-lg">
-              {/* Header section */}
-              <div className="px-6 py-4 border-b border-gray-200">
-                <div className="flex justify-between items-center">
-                  <h1 className="text-2xl font-bold">Application Details</h1>
-                  {canEdit() && !isEditing && (
+              {/* Action buttons in the top right */}
+              <div className="flex justify-end p-4">
+                {canEdit() && !isEditing && (
+                  <button
+                    onClick={handleEdit}
+                    className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+                  >
+                    Edit Application
+                  </button>
+                )}
+                {isEditing && (
+                  <div className="space-x-2">
                     <button
-                      onClick={handleEdit}
-                      className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+                      onClick={handleSave}
+                      className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
                     >
-                      Edit Application
+                      Save Changes
                     </button>
-                  )}
-                  {isEditing && (
-                    <div className="space-x-2">
-                      <button
-                        onClick={handleSave}
-                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                      >
-                        Save Changes
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsEditing(false);
-                          setEditedFields(application);
-                        }}
-                        className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
-                </div>
+                    <button
+                      onClick={() => {
+                        setIsEditing(false);
+                        setEditedFields(application);
+                      }}
+                      className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Meeting Information */}
               <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold mb-4">Meeting Information</h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Meeting</label>
-                    <div className="mt-1">{application.meeting?.name}</div>
-                  </div>
+                <h2 className="text-lg font-semibold mb-4 text-left">Meeting Information</h2>
+                <div className="text-left">
+                  <label className="block text-sm font-medium text-gray-700">Meeting</label>
+                  <div className="mt-1">{application.meeting?.name}</div>
                 </div>
               </div>
 
               {/* Personal Information */}
               <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold mb-4">Personal Information</h2>
+                <h2 className="text-lg font-semibold mb-4 text-left">Personal Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">First Name</label>
-                    <div className="mt-1">{application.firstName}</div>
+                    {renderField({
+                      name: 'firstName',
+                      value: application.firstName,
+                      type: 'text',
+                      editable: true
+                    })}
                   </div>
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Last Name</label>
-                    <div className="mt-1">{application.lastName}</div>
+                    {renderField({
+                      name: 'lastName',
+                      value: application.lastName,
+                      type: 'text',
+                      editable: true
+                    })}
                   </div>
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Email</label>
-                    <div className="mt-1">{application.email}</div>
+                    {renderField({
+                      name: 'email',
+                      value: application.email,
+                      type: 'email',
+                      editable: true
+                    })}
                   </div>
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Date of Birth</label>
-                    <div className="mt-1">{formatDate(application.birthdate)}</div>
+                    {renderField({
+                      name: 'birthdate',
+                      value: application.birthdate,
+                      type: 'date',
+                      editable: true
+                    })}
                   </div>
-                  <div>
+                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Gender</label>
-                    <div className="mt-1">{application.gender}</div>
+                    {renderField({
+                      name: 'gender',
+                      value: application.gender,
+                      type: 'select',
+                      editable: true,
+                      options: GENDER_OPTIONS
+                    })}
                   </div>
                 </div>
               </div>
@@ -340,46 +367,31 @@ export default function ApplicationDetails({ isAdmin = false }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Passport Number</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editedFields.passportNumber || ''}
-                        onChange={(e) => handleFieldChange('passportNumber', e.target.value)}
-                        className={inputClass}
-                      />
-                    ) : (
-                      <div className="mt-1">{application.passportNumber}</div>
-                    )}
+                    {renderField({
+                      name: 'passportNumber',
+                      value: application.passportNumber,
+                      type: 'text',
+                      editable: true
+                    })}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Issuing Country</label>
-                    {isEditing ? (
-                      <select
-                        value={editedFields.issuingCountry || ''}
-                        onChange={(e) => handleFieldChange('issuingCountry', e.target.value)}
-                        className={inputClass}
-                      >
-                        <option value="">Select a country</option>
-                        {COUNTRIES.map(country => (
-                          <option key={country} value={country}>{country}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <div className="mt-1">{application.issuingCountry}</div>
-                    )}
+                    {renderField({
+                      name: 'issuingCountry',
+                      value: application.issuingCountry,
+                      type: 'select',
+                      editable: true,
+                      options: COUNTRIES
+                    })}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Expiration Date</label>
-                    {isEditing ? (
-                      <input
-                        type="date"
-                        value={editedFields.passportExpirationDate?.split('T')[0] || ''}
-                        onChange={(e) => handleFieldChange('passportExpirationDate', e.target.value)}
-                        className={inputClass}
-                      />
-                    ) : (
-                      <div className="mt-1">{formatDate(application.passportExpirationDate)}</div>
-                    )}
+                    {renderField({
+                      name: 'passportExpirationDate',
+                      value: application.passportExpirationDate,
+                      type: 'date',
+                      editable: true
+                    })}
                   </div>
                 </div>
               </div>
@@ -390,29 +402,21 @@ export default function ApplicationDetails({ isAdmin = false }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Arrival Date</label>
-                    {isEditing ? (
-                      <input
-                        type="date"
-                        value={editedFields.dateOfArrival?.split('T')[0] || ''}
-                        onChange={(e) => handleFieldChange('dateOfArrival', e.target.value)}
-                        className={inputClass}
-                      />
-                    ) : (
-                      <div className="mt-1">{formatDate(application.dateOfArrival)}</div>
-                    )}
+                    {renderField({
+                      name: 'dateOfArrival',
+                      value: application.dateOfArrival,
+                      type: 'date',
+                      editable: true
+                    })}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Departure Date</label>
-                    {isEditing ? (
-                      <input
-                        type="date"
-                        value={editedFields.dateOfDeparture?.split('T')[0] || ''}
-                        onChange={(e) => handleFieldChange('dateOfDeparture', e.target.value)}
-                        className={inputClass}
-                      />
-                    ) : (
-                      <div className="mt-1">{formatDate(application.dateOfDeparture)}</div>
-                    )}
+                    {renderField({
+                      name: 'dateOfDeparture',
+                      value: application.dateOfDeparture,
+                      type: 'date',
+                      editable: true
+                    })}
                   </div>
                 </div>
               </div>
@@ -442,75 +446,52 @@ export default function ApplicationDetails({ isAdmin = false }) {
                   <div className="col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Company Address</label>
                     <div className="max-w-md">
-                      {isEditing ? (
-                        // Edit mode - show separate fields
-                        <div className="space-y-1">
-                          <div>
-                            {renderField({
-                              name: 'companyMailingAddress1',
-                              value: application.companyMailingAddress1,
-                              type: 'text',
-                              editable: true
-                            })}
-                          </div>
-                          <div>
-                            {renderField({
-                              name: 'companyMailingAddress2',
-                              value: application.companyMailingAddress2,
-                              type: 'text',
-                              editable: true
-                            })}
-                          </div>
-                          <div className="flex gap-1">
-                            <div className="w-48">
-                              {renderField({
-                                name: 'city',
-                                value: application.city,
-                                type: 'text',
-                                editable: true
-                              })}
-                            </div>
-                            <div className="w-16">
-                              {renderField({
-                                name: 'state',
-                                value: application.state,
-                                type: 'select',
-                                editable: true,
-                                options: US_STATES
-                              })}
-                            </div>
-                            <div className="w-24">
-                              {renderField({
-                                name: 'postalCode',
-                                value: application.postalCode,
-                                type: 'text',
-                                editable: true
-                              })}
-                            </div>
-                          </div>
-                          <div className="w-40">
-                            {renderField({
-                              name: 'country',
-                              value: application.country,
-                              type: 'select',
-                              editable: true,
-                              options: COUNTRIES
-                            })}
-                          </div>
+                      {renderField({
+                        name: 'companyMailingAddress1',
+                        value: application.companyMailingAddress1,
+                        type: 'text',
+                        editable: true
+                      })}
+                      {renderField({
+                        name: 'companyMailingAddress2',
+                        value: application.companyMailingAddress2,
+                        type: 'text',
+                        editable: true
+                      })}
+                      <div className="flex gap-1">
+                        <div className="w-48">
+                          {renderField({
+                            name: 'city',
+                            value: application.city,
+                            type: 'text',
+                            editable: true
+                          })}
                         </div>
-                      ) : (
-                        // View mode - show formatted address
-                        <div className="space-y-1">
-                          <div>{application.companyMailingAddress1}</div>
-                          {application.companyMailingAddress2 && (
-                            <div>{application.companyMailingAddress2}</div>
-                          )}
-                          <div>
-                            {application.city}, {application.state} {application.postalCode}
-                          </div>
-                          <div>{application.country}</div>
+                        <div className="w-16">
+                          {renderField({
+                            name: 'state',
+                            value: application.state,
+                            type: 'select',
+                            editable: true,
+                            options: US_STATES
+                          })}
                         </div>
-                      )}
+                        <div className="w-24">
+                          {renderField({
+                            name: 'postalCode',
+                            value: application.postalCode,
+                            type: 'text',
+                            editable: true
+                          })}
+                        </div>
+                      </div>
+                      {renderField({
+                        name: 'country',
+                        value: application.country,
+                        type: 'select',
+                        editable: true,
+                        options: COUNTRIES
+                      })}
                     </div>
                   </div>
                 </div>
