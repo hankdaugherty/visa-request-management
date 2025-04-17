@@ -290,13 +290,14 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to delete this application' });
     }
 
-    await application.remove();
+    await Application.findByIdAndDelete(req.params.id);  // ✅ This replaces application.remove()
     res.json({ message: 'Application deleted successfully' });
   } catch (error) {
     console.error('Error deleting application:', error);
     res.status(500).json({ message: 'Error deleting application', error: error.message });
   }
 });
+
 
 // Add this after the GET route
 router.post('/', auth, async (req, res) => {
