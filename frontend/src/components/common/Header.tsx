@@ -20,33 +20,33 @@ export default function Header() {
           {/* Logo */}
           <div className="flex-shrink-0">
             <Link to="/" className="text-[#6366F1] text-xl sm:text-2xl font-bold">
-              Visa Manager
+              3GPP Visa Letter Request Portal
             </Link>
           </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-4">
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
             >
               Dashboard
             </Link>
-            <Link 
-              to="/applications/new" 
+            <Link
+              to="/applications/new"
               className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
             >
               New Application
             </Link>
             {isAdmin && (
-              <Link 
-                to="/admin" 
+              <Link
+                to="/admin"
                 className="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
               >
                 Admin
               </Link>
             )}
-            <button 
+            <button
               onClick={handleLogout}
               className="ml-4 bg-[#6366F1] text-white px-4 py-2 rounded-md hover:bg-[#4F46E5] text-sm font-medium"
             >
