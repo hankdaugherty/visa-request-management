@@ -50,26 +50,32 @@ export default function AdminApplications() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let mounted = true;
+
     const fetchData = async () => {
       try {
-        setLoading(true);
-        const response = await applicationsApi.getAllForAdmin(currentPage);
+        const response = await applicationsApi.getAllForAdmin(1);
         console.log('API Response:', response);
         
-        if (response && response.applications) {
+        if (mounted && response?.applications) {
           setApplications(response.applications);
-          setTotalPages(response.pagination?.pages || 1);
         }
       } catch (err: any) {
         console.error('Error:', err);
         setError(err.message || 'Failed to load data');
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchData();
-  }, [currentPage]);
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const handleDelete = async (application: Application) => {
     setApplicationToDelete(application);
@@ -123,6 +129,10 @@ export default function AdminApplications() {
 
   if (loading) return <div className="p-4">Loading...</div>;
   if (error) return <div className="p-4 text-red-600">{error}</div>;
+
+  if (!applications || applications.length === 0) {
+    return <div>No applications found.</div>;
+  }
 
   return (
     <div className="p-4">
