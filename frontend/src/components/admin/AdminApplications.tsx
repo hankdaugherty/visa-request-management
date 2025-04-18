@@ -27,6 +27,15 @@ interface Meeting {
   isActive: boolean;
 }
 
+interface PaginatedResponse {
+  applications: Application[];
+  pagination: {
+    total: number;
+    page: number;
+    pages: number;
+  };
+}
+
 const ITEMS_PER_PAGE = 10;
 
 export default function AdminApplications() {
@@ -56,9 +65,9 @@ export default function AdminApplications() {
         }
 
         // Use the admin-specific endpoint
-        const applicationsData = await applicationsApi.getAllForAdmin();
-        console.log('Fetched applications:', applicationsData);
-        setApplications(applicationsData);
+        const response: PaginatedResponse = await applicationsApi.getAllForAdmin(currentPage);
+        console.log('Fetched applications:', response);
+        setApplications(response.applications);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -66,7 +75,7 @@ export default function AdminApplications() {
       }
     };
     fetchData();
-  }, []);
+  }, [currentPage]);
 
   // Modify the existing filteredApplications calculation
   const filteredApplications = useMemo(() => {
@@ -84,17 +93,12 @@ export default function AdminApplications() {
       );
     }
 
-    // Calculate total pages
-    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-    
-    // Paginate the results
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     return {
-      data: filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE),
-      totalPages,
+      data: filtered,
+      totalPages: Math.ceil(filtered.length / ITEMS_PER_PAGE),
       totalItems: filtered.length
     };
-  }, [applications, selectedMeetingId, searchQuery, currentPage]);
+  }, [applications, selectedMeetingId, searchQuery]);
 
   // Calculate statistics for the selected meeting
   const stats = {
@@ -217,11 +221,11 @@ export default function AdminApplications() {
     </tr>
   );
 
-  // Add this function to refresh applications after import
+  // Update the refreshApplications function
   const refreshApplications = async () => {
     try {
-      const applicationsData = await applicationsApi.getAllForAdmin();
-      setApplications(applicationsData);
+      const response: PaginatedResponse = await applicationsApi.getAllForAdmin(currentPage);
+      setApplications(response.applications);
     } catch (err: any) {
       setError(err.message);
     }
