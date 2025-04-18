@@ -251,7 +251,10 @@ export const applications = {
 
   getAllForAdmin: async (page = 1) => {
     const response = await apiRequest(`api/applications?admin=true&page=${page}&limit=10`);
-    return response.applications || [];  // Return just the applications array, or empty array if undefined
+    return {
+      applications: response.applications || [],
+      pagination: response.pagination || { total: 0, page: 1, pages: 1 }
+    };
   },
 
   import: async (file: File) => {
