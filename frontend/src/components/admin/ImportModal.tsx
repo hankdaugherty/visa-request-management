@@ -9,6 +9,12 @@ interface ImportModalProps {
   onImportComplete: () => void;
 }
 
+// Add a type for the error structure
+interface ImportError {
+  name: string;
+  error: string;
+}
+
 export default function ImportModal({ isOpen, onClose, onImportComplete }: ImportModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -205,7 +211,7 @@ export default function ImportModal({ isOpen, onClose, onImportComplete }: Impor
                 <h4 className="text-sm font-medium text-yellow-800 mb-2">Skipped Records:</h4>
                 <ul className="text-sm text-yellow-700 list-disc list-inside space-y-1">
                   {results.skippedRecords.map((record: any, index: number) => (
-                    <li key={`skipped-${index}`}>
+                    <li key={index}>
                       {record.name}: {record.reason}
                     </li>
                   ))}
@@ -217,8 +223,10 @@ export default function ImportModal({ isOpen, onClose, onImportComplete }: Impor
               <div className="mt-4 bg-red-50 rounded-md p-4">
                 <h4 className="text-sm font-medium text-red-800 mb-2">Errors:</h4>
                 <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
-                  {results.errors.map((error: string, index: number) => (
-                    <li key={index}>{error}</li>
+                  {results.errors.map((error: ImportError, index: number) => (
+                    <li key={index}>
+                      {error.name}: {error.error}
+                    </li>
                   ))}
                 </ul>
               </div>
