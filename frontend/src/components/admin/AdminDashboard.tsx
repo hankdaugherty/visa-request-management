@@ -3,6 +3,15 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import Header from '../common/Header';
 import { applications as applicationsApi } from '../../utils/api';
 
+interface Application {
+  _id: string;
+  meeting: {
+    _id: string;
+    name: string;
+  };
+  status: string;
+}
+
 export default function AdminDashboard() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [selectedMeeting, setSelectedMeeting] = useState('Dallas 2025');
@@ -25,10 +34,10 @@ export default function AdminDashboard() {
   useEffect(() => {
     const getApplications = async () => {
       try {
-        const data = await applicationsApi.getAllForAdmin();
-        console.log('Fetched applications:', data);
-        setApplications(data);
-      } catch (err) {
+        const response = await applicationsApi.getAllForAdmin();
+        // Make sure we're setting the applications array, not the whole response
+        setApplications(response.applications || []);
+      } catch (err: any) {
         setError(err.message);
       } finally {
         setLoading(false);
