@@ -249,9 +249,14 @@ export const applications = {
     });
   },
 
-  getAllForAdmin: async () => {
-    console.log('Fetching all applications as admin');
-    return await apiRequest('/api/applications?admin=true');
+  getAllForAdmin: async (page = 1) => {
+    const response = await fetch(`/api/applications?admin=true&page=${page}&limit=10`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to fetch applications');
+    return response.json();
   },
 
   import: async (file: File) => {
