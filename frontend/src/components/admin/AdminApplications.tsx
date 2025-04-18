@@ -49,91 +49,76 @@ export default function AdminApplications() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
+
+  const filteredApplications = useMemo(() => {
+    return applications.filter(app => {
+      let matchesMeeting = true;
+      let matchesSearch = true;
+
+      if (selectedMeetingId) {
+        matchesMeeting = app.meeting._id === selectedMeetingId;
+      }
+
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        matchesSearch = 
+          `${app.firstName} ${app.lastName}`.toLowerCase().includes(query) ||
+          app.email.toLowerCase().includes(query);
+      }
+
+      return matchesMeeting && matchesSearch;
+    });
+  }, [applications, selectedMeetingId, searchQuery]);
+
+  const stats = useMemo(() => ({
+    total: filteredApplications.length,
+    pending: filteredApplications.filter(app => app.status.toLowerCase() === 'pending').length,
+    approved: filteredApplications.filter(app => app.status.toLowerCase() === 'complete').length
+  }), [filteredApplications]);
+
+  const paginatedApplications = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return {
+      data: filteredApplications.slice(startIndex, startIndex + ITEMS_PER_PAGE),
+      totalPages: Math.ceil(filteredApplications.length / ITEMS_PER_PAGE),
+      totalItems: filteredApplications.length
+    };
+  }, [filteredApplications, currentPage]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch meetings first
+        setLoading(true);
+        
         const meetingsData = await meetingsApi.getAll();
-        console.log('Meetings data:', meetingsData);
         setMeetings(meetingsData);
         
-        // Set initial selected meeting
         if (meetingsData.length > 0) {
           setSelectedMeetingId(meetingsData[0]._id);
         }
 
-        // Use the admin-specific endpoint
         const response = await applicationsApi.getAllForAdmin(currentPage);
         console.log('Raw API response:', response);
         
-        // Defensive check to ensure we have an array of applications
-        const applicationsArray = Array.isArray(response.applications) 
-          ? response.applications 
-          : [];
-        
-        console.log('Applications array:', applicationsArray);
-        setApplications(applicationsArray);
+        if (response && Array.isArray(response.applications)) {
+          setApplications(response.applications);
+          setTotalPages(response.pagination.pages);
+        } else {
+          console.error('Invalid applications data:', response);
+          setError('Failed to load applications data');
+        }
       } catch (err: any) {
         console.error('Error fetching data:', err);
-        setError(err.message);
+        setError(err.message || 'Failed to load data');
       } finally {
         setLoading(false);
       }
     };
+
     fetchData();
   }, [currentPage]);
-
-  // Add defensive checks to filteredApplications
-  const filteredApplications = useMemo(() => {
-    // Ensure applications is an array
-    if (!Array.isArray(applications)) {
-      console.warn('Applications is not an array:', applications);
-      return {
-        data: [],
-        totalPages: 0,
-        totalItems: 0
-      };
-    }
-
-    let filtered = [...applications];
-    
-    if (selectedMeetingId) {
-      filtered = filtered.filter(app => 
-        app && app.meeting && app.meeting._id === selectedMeetingId
-      );
-    }
-    
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(app => 
-        app && 
-        app.firstName && 
-        app.lastName && 
-        app.email && 
-        (`${app.firstName} ${app.lastName}`.toLowerCase().includes(query) ||
-        app.email.toLowerCase().includes(query))
-      );
-    }
-
-    return {
-      data: filtered,
-      totalPages: Math.ceil(filtered.length / ITEMS_PER_PAGE),
-      totalItems: filtered.length
-    };
-  }, [applications, selectedMeetingId, searchQuery]);
-
-  // Update stats calculation with defensive checks
-  const stats = useMemo(() => ({
-    total: Array.isArray(applications) ? applications.length : 0,
-    pending: Array.isArray(applications) 
-      ? applications.filter(app => app && app.status && app.status.toLowerCase() === 'pending').length 
-      : 0,
-    approved: Array.isArray(applications) 
-      ? applications.filter(app => app && app.status && app.status.toLowerCase() === 'complete').length 
-      : 0
-  }), [applications]);
 
   const handleDelete = async (application: Application) => {
     setApplicationToDelete(application);
@@ -145,7 +130,6 @@ export default function AdminApplications() {
     
     try {
       await applicationsApi.delete(applicationToDelete._id);
-      // Refresh the applications list
       const updatedApplications = applications.filter(app => app._id !== applicationToDelete._id);
       setApplications(updatedApplications);
       setDeleteModalOpen(false);
@@ -192,7 +176,7 @@ export default function AdminApplications() {
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return ''; // Handle invalid dates
+    if (isNaN(date.getTime())) return '';
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: '2-digit',
@@ -204,7 +188,6 @@ export default function AdminApplications() {
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
-  // Update the renderApplicationRow function to be more responsive
   const renderApplicationRow = (app: Application) => (
     <tr 
       key={app._id} 
@@ -249,7 +232,6 @@ export default function AdminApplications() {
     </tr>
   );
 
-  // Update the refreshApplications function
   const refreshApplications = async () => {
     try {
       const response: PaginatedResponse = await applicationsApi.getAllForAdmin(currentPage);
@@ -259,9 +241,8 @@ export default function AdminApplications() {
     }
   };
 
-  // Add pagination controls component
   const PaginationControls = () => {
-    const { totalPages } = filteredApplications;
+    const { totalPages } = paginatedApplications;
     
     if (totalPages <= 1) return null;
 
@@ -292,10 +273,10 @@ export default function AdminApplications() {
               </span>
               {' '}-{' '}
               <span className="font-medium">
-                {Math.min(currentPage * ITEMS_PER_PAGE, filteredApplications.totalItems)}
+                {Math.min(currentPage * ITEMS_PER_PAGE, paginatedApplications.totalItems)}
               </span>
               {' '}of{' '}
-              <span className="font-medium">{filteredApplications.totalItems}</span>
+              <span className="font-medium">{paginatedApplications.totalItems}</span>
               {' '}results
             </p>
           </div>
@@ -346,7 +327,6 @@ export default function AdminApplications() {
 
   return (
     <>
-      {/* Meeting Tabs - Made more responsive */}
       <div className="bg-white rounded-lg shadow mb-8">
         <div className="p-4 sm:p-6 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Applications by Meeting</h2>
@@ -376,7 +356,6 @@ export default function AdminApplications() {
         </div>
       </div>
 
-      {/* Statistics Boxes - Made responsive grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 sm:mb-8">
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow">
           <div className="flex items-center gap-3 sm:gap-4">
@@ -421,7 +400,6 @@ export default function AdminApplications() {
         </div>
       </div>
 
-      {/* Applications Table with Search */}
       <div className="bg-white rounded-lg shadow">
         <div className="p-4 lg:p-6 border-b border-gray-200">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
@@ -429,7 +407,6 @@ export default function AdminApplications() {
               {meetings.find(m => m._id === selectedMeetingId)?.name || 'All'} Applications
             </h2>
             
-            {/* Search Input */}
             <div className="w-full lg:w-64">
               <label htmlFor="search" className="sr-only">Search applications</label>
               <div className="relative">
@@ -471,7 +448,7 @@ export default function AdminApplications() {
             <div className="p-4 lg:p-6 text-center text-red-600 bg-red-50 rounded-lg m-4">
               <p className="font-medium">{error}</p>
             </div>
-          ) : filteredApplications.data.length === 0 ? (
+          ) : paginatedApplications.data.length === 0 ? (
             <div className="p-4 lg:p-6 text-center text-gray-500">
               {searchQuery 
                 ? 'No applications found matching your search.'
@@ -490,7 +467,7 @@ export default function AdminApplications() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
-                  {filteredApplications.data.map(app => renderApplicationRow(app))}
+                  {paginatedApplications.data.map(app => renderApplicationRow(app))}
                 </tbody>
               </table>
               <PaginationControls />
