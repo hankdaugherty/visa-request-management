@@ -58,16 +58,19 @@ export default function ApplicationDetails({ isAdmin = false }) {
     
     const isOwner = application.userId?._id === currentUserId;
     const isPending = application.status?.toLowerCase() === 'pending';
+    const isAdmin = userRole === 'admin' || isAdmin;
     
     console.log('Application Edit Check:', {
       isOwner,
       isPending,
+      isAdmin,
       applicationUserId: application.userId?._id,
       currentUserId,
       applicationStatus: application.status
     });
     
-    return isOwner && isPending;
+    // Admin can edit any application, regular users can only edit their own pending applications
+    return isAdmin || (isOwner && isPending);
   };
 
   useEffect(() => {
@@ -281,7 +284,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
 
   return (
     <>
-      {!isAdminUser && <Header />}
+      {!location.pathname.includes('/admin/') && <Header />}
       <main className="bg-[#F9FAFB] min-h-screen">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto py-8">
