@@ -51,11 +51,9 @@ export default function AdminApplications() {
           setSelectedMeetingId(meetingsData[0]._id);
         }
 
-        // Fetch applications
-        const response = await applicationsApi.getAllForAdmin();
-        if (response && response.applications) {
-          setApplications(response.applications);
-        }
+        // Fetch applications - now returns just the array
+        const applicationsData = await applicationsApi.getAllForAdmin();
+        setApplications(applicationsData);
       } catch (err: any) {
         console.error('Error fetching data:', err);
         setError(err.message || 'Failed to load data');

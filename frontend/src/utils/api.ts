@@ -250,7 +250,8 @@ export const applications = {
   },
 
   getAllForAdmin: async (page = 1) => {
-    return apiRequest(`api/applications?admin=true&page=${page}&limit=10`);
+    const response = await apiRequest(`api/applications?admin=true&page=${page}&limit=10`);
+    return response.applications || [];  // Return just the applications array, or empty array if undefined
   },
 
   import: async (file: File) => {
