@@ -140,7 +140,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
     setEditedFields({
       ...application,
       // Ensure all fields are properly initialized
-      issuingCountry: application?.issuingCountry || '',
+      passportIssuingCountry: application?.passportIssuingCountry || '',
       dateOfArrival: application?.dateOfArrival ? new Date(application.dateOfArrival).toISOString().split('T')[0] : '',
       dateOfDeparture: application?.dateOfDeparture ? new Date(application.dateOfDeparture).toISOString().split('T')[0] : '',
       birthdate: application?.birthdate ? new Date(application.birthdate).toISOString().split('T')[0] : '',
@@ -401,8 +401,8 @@ export default function ApplicationDetails({ isAdmin = false }) {
                   <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Issuing Country</label>
                     {renderField({
-                      name: 'issuingCountry',
-                      value: application.issuingCountry,
+                      name: 'passportIssuingCountry',
+                      value: application.passportIssuingCountry,
                       type: 'select',
                       editable: true,
                       options: [{ value: '', label: 'Select Country' }, ...countries]

@@ -7,7 +7,7 @@ export interface Application {
   birthdate: string;
   gender: string;
   passportNumber: string;
-  issuingCountry: string;
+  passportIssuingCountry: string;
   passportExpirationDate: string;
   dateOfArrival: string;
   dateOfDeparture: string;
