@@ -23,39 +23,40 @@ router.get('/', auth, async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // For regular dashboard requests
-    let query = {};
+    let query = { userId: req.user._id };
     
-    // For non-admin users or admin users viewing their own applications
-    if (req.user.role !== 'admin' || !req.query.admin) {
-      // Match either userId OR email address
-      query = {
-        $or: [
-          { userId: req.user._id },
-          { email: req.user.email }
-        ]
-      };
+    // If user is admin and specifically requesting all applications with pagination
+    if (req.user.role === 'admin' && req.query.admin === 'true') {
+      query = {}; // Empty query to get all applications
+      
+      const total = await Application.countDocuments(query);
+      const applications = await Application.find(query)
+        .populate('meeting')
+        .populate('userId', 'firstName lastName email')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+      
+      // Return paginated response for admin view
+      return res.json({
+        applications,
+        pagination: {
+          total,
+          page,
+          pages: Math.ceil(total / limit)
+        }
+      });
     }
     
-    // Get total count for pagination
-    const total = await Application.countDocuments(query);
-    
-    // Get paginated results
+    // For regular dashboard requests, return the old format (no pagination)
     const applications = await Application.find(query)
       .populate('meeting')
       .populate('userId', 'firstName lastName email')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+      .sort({ createdAt: -1 });
     
-    res.json({
-      applications,
-      pagination: {
-        total,
-        page,
-        pages: Math.ceil(total / limit)
-      }
-    });
+    // Return simple array for backwards compatibility
+    res.json(applications);
+    
   } catch (error) {
     console.error('Error fetching applications:', error);
     res.status(500).json({ message: 'Error fetching applications', error: error.message });
