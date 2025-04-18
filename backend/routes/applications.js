@@ -19,31 +19,43 @@ const getMeetingByName = async (name) => {
 // Add the base routes
 router.get('/', auth, async (req, res) => {
   try {
-    // Add debug logging
-    console.log('User making request:', {
-      userId: req.user._id,
-      role: req.user.role
-    });
-    
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     // For regular dashboard requests
-    let query = { userId: req.user._id };
+    let query = {};
     
-    // If user is admin and specifically requesting all applications
-    if (req.user.role === 'admin' && req.query.admin === 'true') {
-      query = {}; // Empty query to get all applications
-      console.log('Admin requesting all applications');
+    // For non-admin users or admin users viewing their own applications
+    if (req.user.role !== 'admin' || !req.query.admin) {
+      // Match either userId OR email address
+      query = {
+        $or: [
+          { userId: req.user._id },
+          { email: req.user.email }
+        ]
+      };
     }
     
-    console.log('Using query:', query);
+    // Get total count for pagination
+    const total = await Application.countDocuments(query);
     
+    // Get paginated results
     const applications = await Application.find(query)
       .populate('meeting')
       .populate('userId', 'firstName lastName email')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
     
-    console.log(`Found ${applications.length} applications`);
-    
-    res.json(applications);
+    res.json({
+      applications,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error('Error fetching applications:', error);
     res.status(500).json({ message: 'Error fetching applications', error: error.message });
