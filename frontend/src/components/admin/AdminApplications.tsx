@@ -30,6 +30,8 @@ interface Meeting {
 export default function AdminApplications() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [selectedMeetingId, setSelectedMeetingId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +45,6 @@ export default function AdminApplications() {
       try {
         setLoading(true);
         
-        // Fetch meetings
         const meetingsData = await meetingsApi.getAll();
         setMeetings(meetingsData);
         
@@ -51,9 +52,9 @@ export default function AdminApplications() {
           setSelectedMeetingId(meetingsData[0]._id);
         }
 
-        // Fetch applications - now returns just the array
-        const applicationsData = await applicationsApi.getAllForAdmin();
-        setApplications(applicationsData);
+        const response = await applicationsApi.getAllForAdmin(currentPage);
+        setApplications(response.applications || []);
+        setTotalPages(response.pagination?.pages || 1);
       } catch (err: any) {
         console.error('Error fetching data:', err);
         setError(err.message || 'Failed to load data');
@@ -63,7 +64,7 @@ export default function AdminApplications() {
     };
 
     fetchData();
-  }, []);
+  }, [currentPage]);
 
   const handleDelete = async (application: Application) => {
     setApplicationToDelete(application);
@@ -89,50 +90,76 @@ export default function AdminApplications() {
     return date.toLocaleDateString();
   };
 
+  const getRowStyles = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'bg-yellow-50 hover:bg-yellow-100';
+      case 'rejected':
+        return 'bg-red-50 hover:bg-red-100';
+      case 'complete':
+        return 'bg-green-50 hover:bg-green-100';
+      default:
+        return 'bg-white hover:bg-gray-50';
+    }
+  };
+
+  const getStatusBadgeStyles = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      case 'complete':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div className="text-red-600">{error}</div>;
 
   return (
     <div className="p-4">
       <div className="mb-4 flex justify-between items-center">
-        <h2 className="text-xl font-bold">Applications</h2>
+        <h1 className="text-2xl font-bold">Applications</h1>
         <button
           onClick={() => setShowImportModal(true)}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
+          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
         >
           Import Applications
         </button>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200">
             {applications.map(app => (
-              <tr key={app._id}>
-                <td className="px-6 py-4 whitespace-nowrap">
+              <tr key={app._id} className={getRowStyles(app.status)}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {app.firstName} {app.lastName}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">{app.email}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{formatDate(app.createdAt)}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    app.status === 'complete' ? 'bg-green-100 text-green-800' :
-                    app.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {app.status}
-                  </span>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {app.email}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {new Date(app.createdAt).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeStyles(app.status)}`}>
+                    {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <button
                     onClick={() => navigate(`/admin/applications/${app._id}`)}
                     className="text-indigo-600 hover:text-indigo-900 mr-4"
@@ -150,6 +177,65 @@ export default function AdminApplications() {
             ))}
           </tbody>
         </table>
+
+        {/* Pagination Controls */}
+        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+          <div className="flex-1 flex justify-between sm:hidden">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-500"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-500"
+            >
+              Next
+            </button>
+          </div>
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Page <span className="font-medium">{currentPage}</span> of{' '}
+                <span className="font-medium">{totalPages}</span>
+              </p>
+            </div>
+            <div>
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-100"
+                >
+                  Previous
+                </button>
+                {[...Array(totalPages)].map((_, i) => (
+                  <button
+                    key={i + 1}
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                      currentPage === i + 1
+                        ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-100"
+                >
+                  Next
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
       </div>
 
       <DeleteConfirmationModal
@@ -166,10 +252,9 @@ export default function AdminApplications() {
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         onImportComplete={async () => {
-          const response = await applicationsApi.getAllForAdmin();
-          if (response && response.applications) {
-            setApplications(response.applications);
-          }
+          const response = await applicationsApi.getAllForAdmin(currentPage);
+          setApplications(response.applications || []);
+          setTotalPages(response.pagination?.pages || 1);
           setShowImportModal(false);
         }}
       />
