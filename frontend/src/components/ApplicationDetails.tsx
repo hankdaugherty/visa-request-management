@@ -608,10 +608,6 @@ export default function ApplicationDetails({ isAdmin = false }) {
                     <div className="mt-1">{formatDateWithTime(application.createdAt)}</div>
                   </div>
                   <div className="text-left">
-                    <label className="block text-sm font-medium text-gray-700">Last Updated</label>
-                    <div className="mt-1">{formatDateWithTime(application.updatedAt)}</div>
-                  </div>
-                  <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Application Status</label>
                     {isEditing && isAdminView ? (
                       <select
@@ -656,6 +652,10 @@ export default function ApplicationDetails({ isAdmin = false }) {
                         {application.hardCopyMailedDate ? formatDate(application.hardCopyMailedDate) : 'Not mailed yet'}
                       </div>
                     )}
+                  </div>
+                  <div className="text-left">
+                    <label className="block text-sm font-medium text-gray-700">Last Updated</label>
+                    <div className="mt-1">{formatDateWithTime(application.updatedAt)}</div>
                   </div>
                   <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Last Updated By</label>
