@@ -57,6 +57,12 @@ export default function ImportModal({ isOpen, onClose, onImportComplete }: Impor
     }
   };
 
+  const handleReset = () => {
+    setFile(null);
+    setResults(null);
+    setError(null);
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -207,24 +213,29 @@ export default function ImportModal({ isOpen, onClose, onImportComplete }: Impor
               </div>
             )}
 
-            {results.errors.length > 0 && (
+            {results.errors && results.errors.length > 0 && (
               <div className="mt-4 bg-red-50 rounded-md p-4">
                 <h4 className="text-sm font-medium text-red-800 mb-2">Errors:</h4>
                 <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
-                  {results.errors.map((error: any, index: number) => (
-                    <li key={`error-${index}`}>
-                      {error.name}: {error.error}
-                    </li>
+                  {results.errors.map((error: string, index: number) => (
+                    <li key={index}>{error}</li>
                   ))}
                 </ul>
               </div>
             )}
 
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2 mt-6">
+              <button
+                type="button"
+                onClick={handleReset}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Import Another File
+              </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
               >
                 Close
               </button>
