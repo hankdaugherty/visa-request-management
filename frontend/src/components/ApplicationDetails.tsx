@@ -198,9 +198,10 @@ export default function ApplicationDetails({ isAdmin = false }) {
       if (field.type === 'date') {
         return <div className="mt-1">{field.value ? formatDate(field.value as string) : ''}</div>;
       }
-      // Add special handling for country fields
-      if (field.name === 'issuingCountry' || field.name === 'country') {
-        return <div className="mt-1">{getCountryLabel(field.value as string)}</div>;
+      // Special handling for country fields to show labels instead of values
+      if (field.name === 'passportIssuingCountry' || field.name === 'country') {
+        const countryLabel = countries.find(c => c.value === field.value)?.label || field.value;
+        return <div className="mt-1">{countryLabel}</div>;
       }
       return <div className="mt-1">{field.value?.toString()}</div>;
     }
