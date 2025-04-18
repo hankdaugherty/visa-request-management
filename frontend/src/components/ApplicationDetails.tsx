@@ -185,6 +185,11 @@ export default function ApplicationDetails({ isAdmin = false }) {
   // Move inputClass outside of renderField to make it accessible throughout the component
   const inputClass = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500";
 
+  const getCountryLabel = (countryCode: string): string => {
+    const country = countries.find(c => c.value === countryCode);
+    return country ? country.label : countryCode;
+  };
+
   const renderField = (field: ApplicationField) => {
     const inputClass = "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500";
 
@@ -192,6 +197,10 @@ export default function ApplicationDetails({ isAdmin = false }) {
     if (!isEditing || !field.editable) {
       if (field.type === 'date') {
         return <div className="mt-1">{field.value ? formatDate(field.value as string) : ''}</div>;
+      }
+      // Add special handling for country fields
+      if (field.name === 'issuingCountry' || field.name === 'country') {
+        return <div className="mt-1">{getCountryLabel(field.value as string)}</div>;
       }
       return <div className="mt-1">{field.value?.toString()}</div>;
     }
@@ -246,7 +255,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
     }
   };
 
-  // Add a new function to format the address
+  // Update the formatAddress function to display country names instead of codes
   const formatAddress = (address: {
     companyMailingAddress1: string;
     companyMailingAddress2?: string;
@@ -259,7 +268,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
       address.companyMailingAddress1,
       address.companyMailingAddress2,
       `${address.city}, ${address.state} ${address.postalCode}`,
-      address.country
+      getCountryLabel(address.country)
     ].filter(line => line && line.trim()); // Remove empty lines
 
     return lines;
@@ -396,7 +405,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
                       value: application.issuingCountry,
                       type: 'select',
                       editable: true,
-                      options: countries
+                      options: [{ value: '', label: 'Select Country' }, ...countries]
                     })}
                   </div>
                   <div className="text-left">
@@ -504,6 +513,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
                           onChange={(e) => handleFieldChange('country', e.target.value)}
                           className={inputClass}
                         >
+                          <option value="">Select Country</option>
                           {countries.map(country => (
                             <option key={country.value} value={country.value}>{country.label}</option>
                           ))}
