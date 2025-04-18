@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { applications as applicationsApi, meetings as meetingsApi } from '../../utils/api';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
@@ -27,6 +27,8 @@ interface Meeting {
   isActive: boolean;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 export default function AdminApplications() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -37,6 +39,7 @@ export default function AdminApplications() {
   const [applicationToDelete, setApplicationToDelete] = useState<Application | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
   // Fetch both meetings and applications when component mounts
@@ -65,36 +68,39 @@ export default function AdminApplications() {
     fetchData();
   }, []);
 
-  // Modify the filtering logic to include search and sorting
-  const filteredApplications = applications
-    .filter(app => 
-      // First filter by selected meeting
-      (!selectedMeetingId || app.meeting._id === selectedMeetingId) &&
-      // Then filter by search query
-      (searchQuery === '' || 
-        `${app.firstName} ${app.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()))
-    )
-    .sort((a, b) => {
-      // Define status priority (pending first, then rejected, then complete)
-      const statusPriority = {
-        'pending': 0,
-        'rejected': 1,
-        'complete': 2
-      };
-      
-      // First sort by status priority
-      const statusDiff = statusPriority[a.status.toLowerCase()] - statusPriority[b.status.toLowerCase()];
-      if (statusDiff !== 0) return statusDiff;
-      
-      // If status is the same, sort by application date (newest first)
-      return new Date(b.applicationDate).getTime() - new Date(a.applicationDate).getTime();
-    });
+  // Modify the existing filteredApplications calculation
+  const filteredApplications = useMemo(() => {
+    let filtered = applications;
+    
+    if (selectedMeetingId) {
+      filtered = filtered.filter(app => app.meeting._id === selectedMeetingId);
+    }
+    
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(app => 
+        `${app.firstName} ${app.lastName}`.toLowerCase().includes(query) ||
+        app.email.toLowerCase().includes(query)
+      );
+    }
+
+    // Calculate total pages
+    const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+    
+    // Paginate the results
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return {
+      data: filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE),
+      totalPages,
+      totalItems: filtered.length
+    };
+  }, [applications, selectedMeetingId, searchQuery, currentPage]);
 
   // Calculate statistics for the selected meeting
   const stats = {
-    total: filteredApplications.length,
-    pending: filteredApplications.filter(app => app.status.toLowerCase() === 'pending').length,
-    approved: filteredApplications.filter(app => app.status.toLowerCase() === 'complete').length
+    total: filteredApplications.totalItems,
+    pending: applications.filter(app => app.status.toLowerCase() === 'pending').length,
+    approved: applications.filter(app => app.status.toLowerCase() === 'complete').length
   };
 
   const handleDelete = async (application: Application) => {
@@ -219,6 +225,88 @@ export default function AdminApplications() {
     } catch (err: any) {
       setError(err.message);
     }
+  };
+
+  // Add pagination controls component
+  const PaginationControls = () => {
+    const { totalPages } = filteredApplications;
+    
+    if (totalPages <= 1) return null;
+
+    return (
+      <div className="px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+        <div className="flex-1 flex justify-between sm:hidden">
+          <button
+            onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
+            disabled={currentPage === 1}
+            className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-500"
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
+            disabled={currentPage === totalPages}
+            className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-500"
+          >
+            Next
+          </button>
+        </div>
+        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-700">
+              Showing{' '}
+              <span className="font-medium">
+                {((currentPage - 1) * ITEMS_PER_PAGE) + 1}
+              </span>
+              {' '}-{' '}
+              <span className="font-medium">
+                {Math.min(currentPage * ITEMS_PER_PAGE, filteredApplications.totalItems)}
+              </span>
+              {' '}of{' '}
+              <span className="font-medium">{filteredApplications.totalItems}</span>
+              {' '}results
+            </p>
+          </div>
+          <div>
+            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+              <button
+                onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-100"
+              >
+                <span className="sr-only">Previous</span>
+                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </button>
+              {[...Array(totalPages)].map((_, i) => (
+                <button
+                  key={i + 1}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                    currentPage === i + 1
+                      ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+              <button
+                onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
+                disabled={currentPage === totalPages}
+                className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:bg-gray-100"
+              >
+                <span className="sr-only">Next</span>
+                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </nav>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (loading) return <div>Loading...</div>;
@@ -351,27 +439,30 @@ export default function AdminApplications() {
             <div className="p-4 lg:p-6 text-center text-red-600 bg-red-50 rounded-lg m-4">
               <p className="font-medium">{error}</p>
             </div>
-          ) : filteredApplications.length === 0 ? (
+          ) : filteredApplications.data.length === 0 ? (
             <div className="p-4 lg:p-6 text-center text-gray-500">
               {searchQuery 
                 ? 'No applications found matching your search.'
                 : 'No applications found for this meeting.'}
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="hidden lg:table-cell px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="hidden lg:table-cell px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted Date</th>
-                  <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-3 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {filteredApplications.map(app => renderApplicationRow(app))}
-              </tbody>
-            </table>
+            <>
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="hidden lg:table-cell px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th className="hidden lg:table-cell px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted Date</th>
+                    <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-3 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {filteredApplications.data.map(app => renderApplicationRow(app))}
+                </tbody>
+              </table>
+              <PaginationControls />
+            </>
           )}
         </div>
       </div>
