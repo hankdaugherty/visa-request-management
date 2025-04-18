@@ -51,12 +51,12 @@ export default function AdminApplications() {
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
 
-  // Fetch both meetings and applications when component mounts
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Fetch meetings first
         const meetingsData = await meetingsApi.getAll();
+        console.log('Meetings data:', meetingsData);
         setMeetings(meetingsData);
         
         // Set initial selected meeting
@@ -65,10 +65,18 @@ export default function AdminApplications() {
         }
 
         // Use the admin-specific endpoint
-        const response: PaginatedResponse = await applicationsApi.getAllForAdmin(currentPage);
-        console.log('Fetched applications:', response);
-        setApplications(response.applications);
+        const response = await applicationsApi.getAllForAdmin(currentPage);
+        console.log('Raw API response:', response);
+        
+        // Defensive check to ensure we have an array of applications
+        const applicationsArray = Array.isArray(response.applications) 
+          ? response.applications 
+          : [];
+        
+        console.log('Applications array:', applicationsArray);
+        setApplications(applicationsArray);
       } catch (err: any) {
+        console.error('Error fetching data:', err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -77,19 +85,35 @@ export default function AdminApplications() {
     fetchData();
   }, [currentPage]);
 
-  // Modify the existing filteredApplications calculation
+  // Add defensive checks to filteredApplications
   const filteredApplications = useMemo(() => {
-    let filtered = applications;
+    // Ensure applications is an array
+    if (!Array.isArray(applications)) {
+      console.warn('Applications is not an array:', applications);
+      return {
+        data: [],
+        totalPages: 0,
+        totalItems: 0
+      };
+    }
+
+    let filtered = [...applications];
     
     if (selectedMeetingId) {
-      filtered = filtered.filter(app => app.meeting._id === selectedMeetingId);
+      filtered = filtered.filter(app => 
+        app && app.meeting && app.meeting._id === selectedMeetingId
+      );
     }
     
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(app => 
-        `${app.firstName} ${app.lastName}`.toLowerCase().includes(query) ||
-        app.email.toLowerCase().includes(query)
+        app && 
+        app.firstName && 
+        app.lastName && 
+        app.email && 
+        (`${app.firstName} ${app.lastName}`.toLowerCase().includes(query) ||
+        app.email.toLowerCase().includes(query))
       );
     }
 
@@ -100,12 +124,16 @@ export default function AdminApplications() {
     };
   }, [applications, selectedMeetingId, searchQuery]);
 
-  // Calculate statistics for the selected meeting
-  const stats = {
-    total: filteredApplications.totalItems,
-    pending: applications.filter(app => app.status.toLowerCase() === 'pending').length,
-    approved: applications.filter(app => app.status.toLowerCase() === 'complete').length
-  };
+  // Update stats calculation with defensive checks
+  const stats = useMemo(() => ({
+    total: Array.isArray(applications) ? applications.length : 0,
+    pending: Array.isArray(applications) 
+      ? applications.filter(app => app && app.status && app.status.toLowerCase() === 'pending').length 
+      : 0,
+    approved: Array.isArray(applications) 
+      ? applications.filter(app => app && app.status && app.status.toLowerCase() === 'complete').length 
+      : 0
+  }), [applications]);
 
   const handleDelete = async (application: Application) => {
     setApplicationToDelete(application);
