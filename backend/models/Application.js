@@ -1,4 +1,6 @@
 const mongoose = require('mongoose');
+// Re-use status values across the codebase
+const { APPLICATION_STATUSES } = require('../constants/statuses');
 
 const applicationSchema = new mongoose.Schema({
   userId: {
@@ -129,8 +131,8 @@ const applicationSchema = new mongoose.Schema({
   // Administrative Fields
   status: {
     type: String,
-    enum: ['Pending','Complete','Rejected'],
-    default: 'Pending'
+    enum: APPLICATION_STATUSES,
+    default: APPLICATION_STATUSES[0]
   },
   letterEmailedDate: {
     type: Date

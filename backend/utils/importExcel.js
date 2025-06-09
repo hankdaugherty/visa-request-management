@@ -3,6 +3,7 @@ const fs = require('fs');
 const Application = require('../models/Application');
 const User = require('../models/User');
 const { sendEmail } = require('./sendEmail');
+const { APPLICATION_STATUSES } = require('../constants/statuses');
 
 exports.importApplications = async (filePath, adminUserId) => {
   return new Promise((resolve, reject) => {
@@ -43,7 +44,7 @@ exports.importApplications = async (filePath, adminUserId) => {
             phoneNumber: data.phoneNumber,
             organization: data.organization,
             role: data.role,
-            status: data.status || 'pending',
+            status: data.status || APPLICATION_STATUSES[0],
             submittedAt: new Date(data.submittedDate) || new Date(),
             lastUpdatedBy: adminUserId
           });

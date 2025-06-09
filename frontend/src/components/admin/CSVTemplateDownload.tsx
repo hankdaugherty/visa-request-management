@@ -59,7 +59,7 @@ export default function CSVTemplateDownload() {
     'ABC123',
     'No special requirements',
     'Calgary 2026',  // Use the actual meeting name
-    'pending',
+    'Pending',
     '',
     '',
     '',
