@@ -1,5 +1,7 @@
 const Application = require('../models/Application');
 const Meeting = require('../models/Meeting');
+// Allowed status values shared across the backend
+const { APPLICATION_STATUSES } = require('../constants/statuses');
 
 exports.createApplication = async (req, res) => {
   try {
@@ -59,7 +61,8 @@ exports.updateApplication = async (req, res) => {
 
     // Check permissions
     const isOwner = application.userId.toString() === req.user._id.toString();
-    const isPending = application.status === 'pending';
+    const PENDING_STATUS = APPLICATION_STATUSES[0];
+    const isPending = application.status === PENDING_STATUS;
 
     console.log('Permission check:', {
       isOwner,

@@ -5,6 +5,7 @@ const multer = require('multer');
 const { parse } = require('csv-parse');
 const Meeting = require('../models/Meeting');
 const Application = require('../models/Application');
+const { APPLICATION_STATUSES } = require('../constants/statuses');
 const upload = multer({ storage: multer.memoryStorage() });
 
 // Add this helper function at the top
@@ -168,7 +169,7 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
         const application = new Application({
           // System fields
           userId: req.user._id,
-          status: record.status?.toLowerCase() === 'complete' ? 'Complete' : 'Pending',
+          status: record.status?.toLowerCase() === 'complete' ? 'Complete' : APPLICATION_STATUSES[0],
           entryDate: applicationDate,
           createdAt: applicationDate,  // This should now stick due to immutable: true
           
@@ -336,7 +337,7 @@ router.post('/', auth, async (req, res) => {
     const application = new Application({
       ...req.body,
       userId: req.user._id,
-      status: 'Pending'
+      status: APPLICATION_STATUSES[0]
     });
     
     await application.save();
