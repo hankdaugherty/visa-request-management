@@ -25,19 +25,32 @@ router.get('/', auth, async (req, res) => {
     const skip = (page - 1) * limit;
 
     let query = { userId: req.user._id };
-    
+    let sort = { createdAt: -1 };
+
     // If user is admin and specifically requesting all applications with pagination
     if (req.user.role === 'admin' && req.query.admin === 'true') {
-      query = {}; // Empty query to get all applications
-      
+      query = {};
+      // Meeting filter
+      if (req.query.meetingId) {
+        query.meeting = req.query.meetingId;
+      }
+      // Sorting
+      const sortBy = req.query.sortBy || 'createdAt';
+      const sortDirection = req.query.sortDirection === 'asc' ? 1 : -1;
+      if (sortBy === 'status') {
+        sort = { status: sortDirection, createdAt: -1 };
+      } else {
+        sort = { createdAt: sortDirection };
+      }
+
       const total = await Application.countDocuments(query);
       const applications = await Application.find(query)
         .populate('meeting')
         .populate('userId', 'firstName lastName email')
-        .sort({ createdAt: -1 })
+        .sort(sort)
         .skip(skip)
         .limit(limit);
-      
+
       // Return paginated response for admin view
       return res.json({
         applications,
@@ -263,7 +276,8 @@ router.get('/:id', auth, async (req, res) => {
     }
 
     // Check if user has permission to view this application
-    if (req.user.role !== 'admin' && application.userId.toString() !== req.user._id.toString()) {
+    const appUserId = application.userId && application.userId._id ? application.userId._id.toString() : application.userId.toString();
+    if (req.user.role !== 'admin' && appUserId !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Not authorized to view this application' });
     }
 
@@ -334,8 +348,10 @@ router.delete('/:id', auth, async (req, res) => {
 // Add this after the GET route
 router.post('/', auth, async (req, res) => {
   try {
+    // Prevent userId from being set by the frontend
+    const { userId, ...safeBody } = req.body;
     const application = new Application({
-      ...req.body,
+      ...safeBody,
       userId: req.user._id,
       status: APPLICATION_STATUSES[0]
     });

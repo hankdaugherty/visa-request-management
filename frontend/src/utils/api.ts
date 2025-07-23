@@ -249,8 +249,12 @@ export const applications = {
     });
   },
 
-  getAllForAdmin: async (page = 1) => {
-    const response = await apiRequest(`api/applications?admin=true&page=${page}&limit=10`);
+  getAllForAdmin: async (page = 1, meetingId?: string, sortBy?: string, sortDirection?: string) => {
+    let url = `api/applications?admin=true&page=${page}&limit=10`;
+    if (meetingId) url += `&meetingId=${meetingId}`;
+    if (sortBy) url += `&sortBy=${sortBy}`;
+    if (sortDirection) url += `&sortDirection=${sortDirection}`;
+    const response = await apiRequest(url);
     return {
       applications: response.applications || [],
       pagination: response.pagination || { total: 0, page: 1, pages: 1 }
@@ -310,7 +314,7 @@ export const meetings = {
   }) => {
     try {
       return await apiRequest(`/api/meetings/${id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         body: meetingData
       });
     } catch (error) {

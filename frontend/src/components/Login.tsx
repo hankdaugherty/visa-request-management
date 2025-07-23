@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../utils/api';
 
+console.log("API base:", import.meta.env.VITE_API_BASE_URL);
+
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');

@@ -49,10 +49,16 @@ export default function MeetingManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // Fix: Ensure dates are sent as 'YYYY-MM-DD' (local) to avoid timezone issues
+      const localFormData = {
+        ...formData,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+      };
       if (editingMeeting) {
-        await meetings.update(editingMeeting._id, formData);
+        await meetings.update(editingMeeting._id, localFormData);
       } else {
-        const newMeeting = await meetings.create(formData);
+        const newMeeting = await meetings.create(localFormData);
         setMeetingsList([...meetingsList, newMeeting]);
       }
       await fetchMeetings();
@@ -84,10 +90,11 @@ export default function MeetingManagement() {
 
   const handleEdit = (meeting: Meeting) => {
     setEditingMeeting(meeting);
+    // Fix: Use only the date part (YYYY-MM-DD) to avoid timezone shift
     setFormData({
       name: meeting.name,
-      startDate: new Date(meeting.startDate).toISOString().split('T')[0],
-      endDate: new Date(meeting.endDate).toISOString().split('T')[0],
+      startDate: meeting.startDate.slice(0, 10),
+      endDate: meeting.endDate.slice(0, 10),
       location: meeting.location,
       isActive: meeting.isActive
     });
@@ -106,6 +113,9 @@ export default function MeetingManagement() {
   const submitButtonText = editingMeeting ? "Save Changes" : "Add Meeting";
 
   if (loading) return <div>Loading...</div>;
+
+  // Sort meetings by startDate ascending (chronological order)
+  const sortedMeetingsList = [...meetingsList].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
   return (
     <div className="container mx-auto p-4">
@@ -135,14 +145,13 @@ export default function MeetingManagement() {
       </div>
 
       <div className="space-y-4">
-        {meetingsList.map(meeting => (
+        {sortedMeetingsList.map(meeting => (
           <div key={meeting._id} className="border p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 bg-white">
             <div>
               <h4 className="font-bold">{meeting.name}</h4>
               <p>{meeting.location}</p>
               <p className="text-sm text-gray-600">
-                {new Date(meeting.startDate).toLocaleDateString()} - 
-                {new Date(meeting.endDate).toLocaleDateString()}
+                {meeting.startDate.slice(0, 10)} - {meeting.endDate.slice(0, 10)}
               </p>
               <span className={`text-sm ${meeting.isActive ? 'text-green-600' : 'text-red-600'}`}>
                 {meeting.isActive ? 'Active' : 'Inactive'}

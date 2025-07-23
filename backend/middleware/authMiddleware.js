@@ -18,6 +18,9 @@ module.exports = async (req, res, next) => {
       }
 
       req.user = user;
+      // Ensure _id and id are both strings for robust comparison
+      req.user._id = user._id.toString();
+      req.user.id = user._id.toString();
       next();
     } catch (jwtError) {
       console.error('JWT verification error:', jwtError);

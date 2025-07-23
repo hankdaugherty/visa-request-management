@@ -50,17 +50,18 @@ export default function UserManagement() {
     isAdmin: false
   });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [userToDeleteId, setUserToDeleteId] = useState<string | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [userToChangePassword, setUserToChangePassword] = useState<User | null>(null);
+  const [userToChangePasswordId, setUserToChangePasswordId] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
-  const [userToEdit, setUserToEdit] = useState<User | null>(null);
+  const [userToEditId, setUserToEditId] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({
     firstName: '',
     lastName: '',
     email: ''
   });
+  const [openMenuUserId, setOpenMenuUserId] = useState<string | null>(null);
 
   const USERS_PER_PAGE = 10;
 
@@ -92,7 +93,12 @@ export default function UserManagement() {
     try {
       const response = await auth.getUsers();
       console.log('Users from API:', response); // Debug log
-      setUsers(response);
+      setUsers(
+        response.map((user: any) => ({
+          ...user,
+          role: user.isAdmin ? 'admin' : 'user'
+        }))
+      );
     } catch (error) {
       setError('Failed to fetch users');
     }
@@ -122,81 +128,101 @@ export default function UserManagement() {
 
   const handleToggleAdmin = async (userId: string, makeAdmin: boolean) => {
     try {
+      setOpenMenuUserId(null);
       await auth.updateUserRole(userId, makeAdmin);
-      await fetchUsers();  // Refresh the users list
+      setShowEditModal(false);
+      setUserToEditId(null);
+      setShowDeleteModal(false);
+      setUserToDeleteId(null);
+      setShowPasswordModal(false);
+      setUserToChangePasswordId(null);
+      setSuccess('User updated successfully');
+      await fetchUsers();
     } catch (error) {
       setError('Failed to update user role');
     }
   };
 
-  const handleDelete = (user: User) => {
-    setUserToDelete(user);
+  // Handler to open the delete modal
+  const handleDeleteClick = (user: User) => {
+    setUserToDeleteId(user._id);
     setShowDeleteModal(true);
   };
 
   const confirmDelete = async () => {
-    if (!userToDelete) return;
-    
+    if (!userToDeleteId) return;
     try {
-      await auth.deleteUser(userToDelete._id);
-      await fetchUsers();
+      setOpenMenuUserId(null);
+      await auth.deleteUser(userToDeleteId);
       setShowDeleteModal(false);
-      setUserToDelete(null);
+      setUserToDeleteId(null);
+      setShowEditModal(false);
+      setUserToEditId(null);
+      setShowPasswordModal(false);
+      setUserToChangePasswordId(null);
       setSuccess('User deleted successfully');
+      await fetchUsers(); // Fetch after closing modal
     } catch (error) {
       setError('Failed to delete user');
     }
   };
 
   const toggleAdmin = async (userId: string) => {
+    console.log('toggleAdmin called for', userId);
     const user = users.find(u => u._id === userId);
     if (!user) return;
     await handleToggleAdmin(userId, user.role !== 'admin');
   };
 
   const deleteUser = async (userId: string) => {
+    console.log('deleteUser called for', userId);
     const user = users.find(u => u._id === userId);
     if (!user) return;
-    handleDelete(user);
+    handleDeleteClick(user);
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userToChangePassword) return;
-
+    if (!userToChangePasswordId) return;
     try {
-      await auth.changeUserPassword(userToChangePassword._id, newPassword);
+      setOpenMenuUserId(null);
+      await auth.changeUserPassword(userToChangePasswordId, newPassword);
       setSuccess('Password changed successfully');
       setShowPasswordModal(false);
-      setUserToChangePassword(null);
+      setUserToChangePasswordId(null);
       setNewPassword('');
+      await fetchUsers(); // Fetch after closing modal
     } catch (error) {
       setError('Failed to change password');
     }
   };
 
   const openPasswordModal = (user: User) => {
-    setUserToChangePassword(user);
+    setUserToChangePasswordId(user._id);
     setShowPasswordModal(true);
   };
 
   const handleEditUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userToEdit) return;
-
+    if (!userToEditId) return;
     try {
-      await auth.updateUser(userToEdit._id, editFormData);
-      await fetchUsers(); // Refresh the list
+      setOpenMenuUserId(null);
+      await auth.updateUser(userToEditId, editFormData);
       setSuccess('User updated successfully');
       setShowEditModal(false);
-      setUserToEdit(null);
+      setUserToEditId(null);
+      setShowDeleteModal(false);
+      setUserToDeleteId(null);
+      setShowPasswordModal(false);
+      setUserToChangePasswordId(null);
+      await fetchUsers(); // Fetch after closing modal
     } catch (error) {
       setError('Failed to update user');
     }
   };
 
   const openEditModal = (user: User) => {
-    setUserToEdit(user);
+    setUserToEditId(user._id);
     setEditFormData({
       firstName: user.firstName,
       lastName: user.lastName,
@@ -210,6 +236,10 @@ export default function UserManagement() {
   const startIndex = (currentPage - 1) * USERS_PER_PAGE;
   const endIndex = startIndex + USERS_PER_PAGE;
   const currentUsers = filteredUsers.slice(startIndex, endIndex);
+
+  const userToDelete = userToDeleteId ? users.find(u => u._id === userToDeleteId) : null;
+  const userToEdit = userToEditId ? users.find(u => u._id === userToEditId) : null;
+  const userToChangePassword = userToChangePasswordId ? users.find(u => u._id === userToChangePasswordId) : null;
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:px-6 lg:px-8">
@@ -297,46 +327,52 @@ export default function UserManagement() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {currentUsers.map((user) => (
-              <tr 
-                key={user._id}
-                className={`hover:bg-gray-50 transition-colors duration-150 ease-in-out ${
-                  isUserAdmin(user) ? 'bg-blue-50' : ''
-                }`}
-              >
-                <td className="px-3 lg:px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
-                    {user.firstName} {user.lastName}
-                  </div>
-                  <div className="lg:hidden mt-1">
+            {currentUsers.map((user) => {
+              const handleToggleAdmin = () => toggleAdmin(user._id);
+              return (
+                <tr 
+                  key={user._id}
+                  className={`hover:bg-gray-50 transition-colors duration-150 ease-in-out ${
+                    isUserAdmin(user) ? 'bg-blue-50' : ''
+                  }`}
+                >
+                  <td className="px-3 lg:px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">
+                      {user.firstName} {user.lastName}
+                    </div>
+                    <div className="lg:hidden mt-1">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        isUserAdmin(user) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {isUserAdmin(user) ? 'admin' : 'user'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-3 lg:px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-500">{user.email}</div>
+                  </td>
+                  <td className="hidden lg:table-cell px-3 lg:px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                       isUserAdmin(user) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                     }`}>
                       {isUserAdmin(user) ? 'admin' : 'user'}
                     </span>
-                  </div>
-                </td>
-                <td className="px-3 lg:px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{user.email}</div>
-                </td>
-                <td className="hidden lg:table-cell px-3 lg:px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    isUserAdmin(user) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {isUserAdmin(user) ? 'admin' : 'user'}
-                  </span>
-                </td>
-                <td className="px-3 lg:px-6 py-4 whitespace-nowrap text-right text-sm">
-                  <UserActionsMenu
-                    user={user}
-                    onToggleAdmin={() => toggleAdmin(user._id)}
-                    onDelete={() => deleteUser(user._id)}
-                    onChangePassword={() => openPasswordModal(user)}
-                    onEdit={() => openEditModal(user)}
-                  />
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="px-3 lg:px-6 py-4 whitespace-nowrap text-right text-sm">
+                    <UserActionsMenu
+                      user={user}
+                      show={openMenuUserId === user._id}
+                      onOpen={() => setOpenMenuUserId(user._id)}
+                      onClose={() => setOpenMenuUserId(null)}
+                      onToggleAdmin={handleToggleAdmin}
+                      onDelete={() => handleDeleteClick(user)}
+                      onChangePassword={() => openPasswordModal(user)}
+                      onEdit={() => openEditModal(user)}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </ResponsiveTable>
@@ -436,20 +472,20 @@ export default function UserManagement() {
       </Modal>
 
       <DeleteConfirmationModal
-        isOpen={showDeleteModal}
+        isOpen={showDeleteModal && !!userToDelete}
         onClose={() => {
           setShowDeleteModal(false);
-          setUserToDelete(null);
+          setUserToDeleteId(null);
         }}
         onConfirm={confirmDelete}
         itemName={userToDelete ? `${userToDelete.firstName} ${userToDelete.lastName}` : ''}
       />
 
       <Modal
-        isOpen={showPasswordModal}
+        isOpen={showPasswordModal && !!userToChangePassword}
         onClose={() => {
           setShowPasswordModal(false);
-          setUserToChangePassword(null);
+          setUserToChangePasswordId(null);
           setNewPassword('');
         }}
         title="Change Password"
@@ -473,8 +509,8 @@ export default function UserManagement() {
             <button
               type="button"
               onClick={() => {
-                setShowPasswordModal(false);
-                setUserToChangePassword(null);
+               setShowPasswordModal(false);
+               setUserToChangePasswordId(null);
                 setNewPassword('');
               }}
               className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -492,10 +528,10 @@ export default function UserManagement() {
       </Modal>
 
       <Modal
-        isOpen={showEditModal}
+        isOpen={showEditModal && !!userToEdit}
         onClose={() => {
           setShowEditModal(false);
-          setUserToEdit(null);
+          setUserToEditId(null);
         }}
         title="Edit User"
       >
@@ -543,8 +579,8 @@ export default function UserManagement() {
             <button
               type="button"
               onClick={() => {
-                setShowEditModal(false);
-                setUserToEdit(null);
+               setShowEditModal(false);
+               setUserToEditId(null);
               }}
               className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
             >

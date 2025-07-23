@@ -58,19 +58,19 @@ export default function ApplicationDetails({ isAdmin = false }) {
     
     const isOwner = application.userId?._id === currentUserId;
     const isPending = application.status?.toLowerCase() === 'pending';
-    const isAdmin = userRole === 'admin' || isAdmin;
+    const isAdminUser = userRole === 'admin' || isAdmin;
     
     console.log('Application Edit Check:', {
       isOwner,
       isPending,
-      isAdmin,
+      isAdmin: isAdminUser,
       applicationUserId: application.userId?._id,
       currentUserId,
       applicationStatus: application.status
     });
     
     // Admin can edit any application, regular users can only edit their own pending applications
-    return isAdmin || (isOwner && isPending);
+    return isAdminUser || (isOwner && isPending);
   };
 
   useEffect(() => {

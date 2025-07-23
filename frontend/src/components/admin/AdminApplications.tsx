@@ -47,34 +47,56 @@ export default function AdminApplications() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [sortBy, setSortBy] = useState<'date' | 'status'>('date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const itemsPerPage = 10;
   const navigate = useNavigate();
 
+  // Fetch meetings on mount
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchMeetings = async () => {
       try {
-        setLoading(true);
-        
-        // Fetch meetings
         const meetingsData = await meetingsApi.getAll();
         setMeetings(meetingsData);
-        if (meetingsData.length > 0) {
+        if (meetingsData.length > 0 && !selectedMeetingId) {
           setSelectedMeetingId(meetingsData[0]._id);
         }
+      } catch (err: any) {
+        setError(err.message || 'Failed to load meetings');
+      }
+    };
+    fetchMeetings();
+    // eslint-disable-next-line
+  }, []);
 
-        // Fetch applications
-        const response = await applicationsApi.getAllForAdmin(currentPage);
+  // Fetch applications when filters change
+  useEffect(() => {
+    if (!selectedMeetingId) return;
+    const fetchApplications = async () => {
+      try {
+        setLoading(true);
+        let backendSortBy = sortBy === 'date' ? 'createdAt' : 'status';
+        const response = await applicationsApi.getAllForAdmin(
+          currentPage,
+          selectedMeetingId,
+          backendSortBy,
+          sortDirection
+        );
         setApplications(response.applications);
         setTotalPages(response.pagination.pages);
       } catch (err: any) {
-        console.error('Error:', err);
-        setError(err.message || 'Failed to load data');
+        setError(err.message || 'Failed to load applications');
       } finally {
         setLoading(false);
       }
     };
+    fetchApplications();
+  }, [selectedMeetingId, currentPage, sortBy, sortDirection]);
 
-    fetchData();
-  }, [currentPage]);
+  // Reset to page 1 when meeting or sort changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedMeetingId, sortBy, sortDirection]);
 
   const handleDelete = async (application: Application) => {
     setApplicationToDelete(application);
@@ -133,12 +155,11 @@ export default function AdminApplications() {
     approved: applications.filter(app => app.status.toLowerCase() === 'complete').length
   };
 
+  // Sort meetings by startDate ascending (chronological order)
+  const sortedMeetings = [...meetings].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+
   if (loading) return <div className="p-4">Loading...</div>;
   if (error) return <div className="p-4 text-red-600">{error}</div>;
-
-  if (!applications || applications.length === 0) {
-    return <div>No applications found.</div>;
-  }
 
   return (
     <div className="p-4">
@@ -192,7 +213,7 @@ export default function AdminApplications() {
         </div>
         <div className="p-4 overflow-x-auto">
           <nav className="flex space-x-4">
-            {meetings.map(meeting => (
+            {sortedMeetings.map(meeting => (
               <button
                 key={meeting._id}
                 onClick={() => setSelectedMeetingId(meeting._id)}
@@ -225,44 +246,68 @@ export default function AdminApplications() {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer select-none"
+                onClick={() => {
+                  if (sortBy === 'date') setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+                  setSortBy('date');
+                }}
+              >
+                Date {sortBy === 'date' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+              </th>
+              <th
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer select-none"
+                onClick={() => {
+                  if (sortBy === 'status') setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+                  setSortBy('status');
+                }}
+              >
+                Status {sortBy === 'status' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {applications.map(app => (
-              <tr key={app._id} className={getRowStyles(app.status)}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {app.firstName} {app.lastName}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {app.email}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(app.createdAt).toLocaleDateString()}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeStyles(app.status)}`}>
-                    {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button
-                    onClick={() => navigate(`/admin/applications/${app._id}`)}
-                    className="text-indigo-600 hover:text-indigo-900 mr-4"
-                  >
-                    View
-                  </button>
-                  <button
-                    onClick={() => handleDelete(app)}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    Delete
-                  </button>
+            {applications.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-8 text-gray-500">
+                  No applications found.
                 </td>
               </tr>
-            ))}
+            ) : (
+              applications.map(app => (
+                <tr key={app._id} className={getRowStyles(app.status)}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {app.firstName} {app.lastName}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {app.email}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(app.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeStyles(app.status)}`}>
+                      {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button
+                      onClick={() => navigate(`/admin/applications/${app._id}`)}
+                      className="text-indigo-600 hover:text-indigo-900 mr-4"
+                    >
+                      View
+                    </button>
+                    <button
+                      onClick={() => handleDelete(app)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

@@ -30,7 +30,7 @@ export default function Register() {
       localStorage.setItem('token', response.token);
       localStorage.setItem('userId', response.userId);
       localStorage.setItem('userRole', response.role);
-      navigate('/dashboard');
+      navigate('/');
     } catch (error) {
       setError('Registration failed. Please try again.');
     } finally {
