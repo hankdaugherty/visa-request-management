@@ -17,10 +17,17 @@ export default function Header() {
     <header className="bg-white shadow relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex-shrink-0">
-            <Link to="/" className="text-[#6366F1] text-xl sm:text-2xl font-bold">
-              3GPP Visa Letter Request Portal
+          {/* Logo and Brand */}
+          <div className="flex-shrink-0 flex items-center">
+            <Link to="/" className="flex items-center space-x-3">
+              <img 
+                src="/Logo_3GPP.svg" 
+                alt="3GPP Logo" 
+                className="h-8 w-auto"
+              />
+              <span className="text-gray-900 text-lg sm:text-xl font-semibold">
+                Visa Request Management System
+              </span>
             </Link>
           </div>
 
@@ -48,7 +55,7 @@ export default function Header() {
             )}
             <button
               onClick={handleLogout}
-              className="ml-4 bg-[#6366F1] text-white px-4 py-2 rounded-md hover:bg-[#4F46E5] text-sm font-medium"
+              className="ml-4 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm font-medium"
             >
               Logout
             </button>

@@ -25,6 +25,7 @@ interface Meeting {
   _id: string;
   name: string;
   isActive: boolean;
+  startDate: string;
 }
 
 interface PaginatedResponse {
@@ -47,8 +48,9 @@ export default function AdminApplications() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [sortBy, setSortBy] = useState<'date' | 'status'>('date');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [sortBy, setSortBy] = useState<'date' | 'status'>('status');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [stats, setStats] = useState({ total: 0, pending: 0, complete: 0, rejected: 0 });
   const itemsPerPage = 10;
   const navigate = useNavigate();
 
@@ -93,6 +95,20 @@ export default function AdminApplications() {
     fetchApplications();
   }, [selectedMeetingId, currentPage, sortBy, sortDirection]);
 
+  // Fetch statistics when meeting changes
+  useEffect(() => {
+    if (!selectedMeetingId) return;
+    const fetchStats = async () => {
+      try {
+        const statsData = await applicationsApi.getStats(selectedMeetingId);
+        setStats(statsData);
+      } catch (err: any) {
+        console.error('Failed to load statistics:', err);
+      }
+    };
+    fetchStats();
+  }, [selectedMeetingId]);
+
   // Reset to page 1 when meeting or sort changes
   useEffect(() => {
     setCurrentPage(1);
@@ -109,6 +125,13 @@ export default function AdminApplications() {
     try {
       await applicationsApi.delete(applicationToDelete._id);
       setApplications(apps => apps.filter(app => app._id !== applicationToDelete._id));
+      
+      // Refresh statistics after deletion
+      if (selectedMeetingId) {
+        const statsData = await applicationsApi.getStats(selectedMeetingId);
+        setStats(statsData);
+      }
+      
       setDeleteModalOpen(false);
       setApplicationToDelete(null);
     } catch (err: any) {
@@ -148,15 +171,10 @@ export default function AdminApplications() {
     }
   };
 
-  // Calculate stats
-  const stats = {
-    total: applications.length,
-    pending: applications.filter(app => app.status.toLowerCase() === 'pending').length,
-    approved: applications.filter(app => app.status.toLowerCase() === 'complete').length
-  };
-
-  // Sort meetings by startDate ascending (chronological order)
-  const sortedMeetings = [...meetings].sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+  // Sort meetings by startDate (chronological order) and filter out inactive meetings
+  const sortedMeetings = [...meetings]
+    .filter(meeting => meeting.isActive)
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
   if (loading) return <div className="p-4">Loading...</div>;
   if (error) return <div className="p-4 text-red-600">{error}</div>;
@@ -200,7 +218,7 @@ export default function AdminApplications() {
             </div>
             <div className="ml-4">
               <p className="text-gray-500">Approved</p>
-              <p className="text-2xl font-bold">{stats.approved}</p>
+              <p className="text-2xl font-bold">{stats.complete}</p>
             </div>
           </div>
         </div>
@@ -345,19 +363,104 @@ export default function AdminApplications() {
               >
                 Previous
               </button>
-              {[...Array(totalPages)].map((_, i) => (
-                <button
-                  key={i + 1}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                    currentPage === i + 1
-                      ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                  }`}
-                >
-                  {i + 1}
-                </button>
-              ))}
+              
+              {/* Smart pagination with ellipsis */}
+              {(() => {
+                const pages = [];
+                const maxVisiblePages = 7; // Show max 7 page numbers
+                const halfVisible = Math.floor(maxVisiblePages / 2);
+                
+                if (totalPages <= maxVisiblePages) {
+                  // Show all pages if total is small
+                  for (let i = 1; i <= totalPages; i++) {
+                    pages.push(
+                      <button
+                        key={i}
+                        onClick={() => setCurrentPage(i)}
+                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                          currentPage === i
+                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        {i}
+                      </button>
+                    );
+                  }
+                } else {
+                  // Show smart pagination with ellipsis
+                  let startPage = Math.max(1, currentPage - halfVisible);
+                  let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+                  
+                  // Adjust if we're near the end
+                  if (endPage - startPage < maxVisiblePages - 1) {
+                    startPage = Math.max(1, endPage - maxVisiblePages + 1);
+                  }
+                  
+                  // Always show page 1
+                  if (startPage > 1) {
+                    pages.push(
+                      <button
+                        key={1}
+                        onClick={() => setCurrentPage(1)}
+                        className="relative inline-flex items-center px-4 py-2 border text-sm font-medium bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                      >
+                        1
+                      </button>
+                    );
+                    
+                    if (startPage > 2) {
+                      pages.push(
+                        <span key="ellipsis1" className="relative inline-flex items-center px-4 py-2 border text-sm font-medium bg-white border-gray-300 text-gray-500">
+                          ...
+                        </span>
+                      );
+                    }
+                  }
+                  
+                  // Show visible pages
+                  for (let i = startPage; i <= endPage; i++) {
+                    if (i === 1 && startPage > 1) continue; // Skip if already added
+                    pages.push(
+                      <button
+                        key={i}
+                        onClick={() => setCurrentPage(i)}
+                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                          currentPage === i
+                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                        }`}
+                      >
+                        {i}
+                      </button>
+                    );
+                  }
+                  
+                  // Always show last page
+                  if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) {
+                      pages.push(
+                        <span key="ellipsis2" className="relative inline-flex items-center px-4 py-2 border text-sm font-medium bg-white border-gray-300 text-gray-500">
+                          ...
+                        </span>
+                      );
+                    }
+                    
+                    pages.push(
+                      <button
+                        key={totalPages}
+                        onClick={() => setCurrentPage(totalPages)}
+                        className="relative inline-flex items-center px-4 py-2 border text-sm font-medium bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                      >
+                        {totalPages}
+                      </button>
+                    );
+                  }
+                }
+                
+                return pages;
+              })()}
+              
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
@@ -384,11 +487,17 @@ export default function AdminApplications() {
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         onImportComplete={async () => {
-          const response = await applicationsApi.getAllForAdmin(currentPage);
+          // Refresh both applications and statistics
+          const response = await applicationsApi.getAllForAdmin(currentPage, selectedMeetingId, sortBy === 'date' ? 'createdAt' : 'status', sortDirection);
           if (response && response.applications) {
             setApplications(response.applications);
           }
-          setShowImportModal(false);
+          
+          // Refresh statistics
+          if (selectedMeetingId) {
+            const statsData = await applicationsApi.getStats(selectedMeetingId);
+            setStats(statsData);
+          }
         }}
       />
     </div>

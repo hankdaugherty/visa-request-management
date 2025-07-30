@@ -53,9 +53,8 @@ export default function ImportModal({ isOpen, onClose, onImportComplete }: Impor
     try {
       const result = await applicationsApi.import(file);
       setResults(result);
-      if (result.successful > 0) {
-        onImportComplete();
-      }
+      // Don't call onImportComplete here - let the user read the results first
+      // The modal will stay open until they click "Close" or "Import Another File"
     } catch (err) {
       setError(err.message || 'Failed to import applications');
     } finally {
@@ -194,9 +193,9 @@ export default function ImportModal({ isOpen, onClose, onImportComplete }: Impor
               <div className="mt-1 text-sm text-green-600">
                 Successfully imported: {results.successful}
               </div>
-              {results.skipped > 0 && (
-                <div className="mt-1 text-sm text-yellow-600">
-                  Skipped (already exist): {results.skipped}
+              {results.updated > 0 && (
+                <div className="mt-1 text-sm text-blue-600">
+                  Updated existing records: {results.updated}
                 </div>
               )}
               {results.failed > 0 && (
@@ -206,11 +205,11 @@ export default function ImportModal({ isOpen, onClose, onImportComplete }: Impor
               )}
             </div>
 
-            {results.skippedRecords && results.skippedRecords.length > 0 && (
-              <div className="mt-4 bg-yellow-50 rounded-md p-4">
-                <h4 className="text-sm font-medium text-yellow-800 mb-2">Skipped Records:</h4>
-                <ul className="text-sm text-yellow-700 list-disc list-inside space-y-1">
-                  {results.skippedRecords.map((record: any, index: number) => (
+            {results.updatedRecords && results.updatedRecords.length > 0 && (
+              <div className="mt-4 bg-blue-50 rounded-md p-4">
+                <h4 className="text-sm font-medium text-blue-800 mb-2">Updated Records:</h4>
+                <ul className="text-sm text-blue-700 list-disc list-inside space-y-1">
+                  {results.updatedRecords.map((record: any, index: number) => (
                     <li key={index}>
                       {record.name}: {record.reason}
                     </li>
@@ -242,7 +241,13 @@ export default function ImportModal({ isOpen, onClose, onImportComplete }: Impor
               </button>
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => {
+                  // Call onImportComplete when closing to refresh the data
+                  if (results && results.successful > 0) {
+                    onImportComplete();
+                  }
+                  onClose();
+                }}
                 className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700"
               >
                 Close

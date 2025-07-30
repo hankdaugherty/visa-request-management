@@ -261,6 +261,12 @@ export const applications = {
     };
   },
 
+  getStats: async (meetingId?: string) => {
+    let url = 'api/applications/stats';
+    if (meetingId) url += `?meetingId=${meetingId}`;
+    return await apiRequest(url);
+  },
+
   import: async (file: File) => {
     console.log('Preparing to import file:', file.name);
     const formData = new FormData();

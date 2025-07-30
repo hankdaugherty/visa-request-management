@@ -17,6 +17,42 @@ const getMeetingByName = async (name) => {
   return meeting;
 };
 
+// Get statistics for admin dashboard
+router.get('/stats', auth, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only admin users can access statistics' });
+    }
+
+    const { meetingId } = req.query;
+    let query = {};
+    
+    // Filter by meeting if provided
+    if (meetingId) {
+      query.meeting = meetingId;
+    }
+
+    // Get total count
+    const total = await Application.countDocuments(query);
+    
+    // Get counts by status
+    const pending = await Application.countDocuments({ ...query, status: { $regex: /^pending$/i } });
+    const complete = await Application.countDocuments({ ...query, status: { $regex: /^complete$/i } });
+    const rejected = await Application.countDocuments({ ...query, status: { $regex: /^rejected$/i } });
+
+    res.json({
+      total,
+      pending,
+      complete,
+      rejected
+    });
+  } catch (error) {
+    console.error('Error fetching statistics:', error);
+    res.status(500).json({ message: 'Error fetching statistics', error: error.message });
+  }
+});
+
 // Add the base routes
 router.get('/', auth, async (req, res) => {
   try {
@@ -27,7 +63,7 @@ router.get('/', auth, async (req, res) => {
     let query = { userId: req.user._id };
     let sort = { createdAt: -1 };
 
-    // If user is admin and specifically requesting all applications with pagination
+        // If user is admin and specifically requesting all applications with pagination
     if (req.user.role === 'admin' && req.query.admin === 'true') {
       query = {};
       // Meeting filter
@@ -35,31 +71,69 @@ router.get('/', auth, async (req, res) => {
         query.meeting = req.query.meetingId;
       }
       // Sorting
-      const sortBy = req.query.sortBy || 'createdAt';
+      const sortBy = req.query.sortBy || 'status';
       const sortDirection = req.query.sortDirection === 'asc' ? 1 : -1;
       if (sortBy === 'status') {
-        sort = { status: sortDirection, createdAt: -1 };
+        // For status sorting, we need to fetch all applications for the meeting to sort properly
+        const total = await Application.countDocuments(query);
+        
+        // Fetch all applications for this meeting to sort properly
+        const allApplications = await Application.find(query)
+          .populate('meeting')
+          .populate('userId', 'firstName lastName email')
+          .sort({ createdAt: -1 });
+
+        // Sort applications in memory to prioritize pending
+        allApplications.sort((a, b) => {
+          const statusA = a.status.toLowerCase();
+          const statusB = b.status.toLowerCase();
+          
+          // Define priority order - always prioritize pending first
+          const priority = { 'pending': 1, 'complete': 2, 'rejected': 3 };
+          
+          const priorityA = priority[statusA] || 4;
+          const priorityB = priority[statusB] || 4;
+          
+          if (priorityA !== priorityB) {
+            return priorityA - priorityB;
+          }
+          
+          // If same priority, sort by creation date (newest first)
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        });
+
+        // Apply pagination after sorting
+        const applications = allApplications.slice(skip, skip + limit);
+
+        return res.json({
+          applications,
+          pagination: {
+            total,
+            page,
+            pages: Math.ceil(total / limit)
+          }
+        });
       } else {
         sort = { createdAt: sortDirection };
+        
+        const total = await Application.countDocuments(query);
+        const applications = await Application.find(query)
+          .populate('meeting')
+          .populate('userId', 'firstName lastName email')
+          .sort(sort)
+          .skip(skip)
+          .limit(limit);
+
+        // Return paginated response for admin view
+        return res.json({
+          applications,
+          pagination: {
+            total,
+            page,
+            pages: Math.ceil(total / limit)
+          }
+        });
       }
-
-      const total = await Application.countDocuments(query);
-      const applications = await Application.find(query)
-        .populate('meeting')
-        .populate('userId', 'firstName lastName email')
-        .sort(sort)
-        .skip(skip)
-        .limit(limit);
-
-      // Return paginated response for admin view
-      return res.json({
-        applications,
-        pagination: {
-          total,
-          page,
-          pages: Math.ceil(total / limit)
-        }
-      });
     }
     
     // For regular dashboard requests, return the old format (no pagination)
@@ -150,21 +224,58 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
         // Convert meeting name to ID
         const meeting = await getMeetingByName(record.meetingName);
         
-        // Check if application already exists
+        // Check if application already exists using passport number and meeting
         const existingApplication = await Application.findOne({
-          firstName: record.firstName,
-          lastName: record.lastName,
+          passportNumber: record.passportNumber,
           meeting: meeting._id
         });
 
         if (existingApplication) {
-          results.push({
-            success: false,
-            name: `${record.firstName} ${record.lastName}`,
-            skipped: true,
-            reason: `Application already exists for this person and meeting`
+          // Update existing application with new data
+          Object.assign(existingApplication, {
+            // Update all fields with new data
+            email: record.email,
+            lastName: record.lastName,
+            firstName: record.firstName,
+            birthdate: new Date(record.birthdate),
+            passportIssuingCountry: record.passportIssuingCountry,
+            passportExpirationDate: new Date(record.passportExpirationDate),
+            dateOfArrival: new Date(record.dateOfArrival),
+            dateOfDeparture: new Date(record.dateOfDeparture),
+            gender: record.gender,
+            companyName: record.companyName,
+            position: record.position,
+            companyMailingAddress1: record.companyMailingAddress1,
+            companyMailingAddress2: record.companyMailingAddress2 || '',
+            city: record.city,
+            state: record.state,
+            postalCode: record.postalCode,
+            country: record.country,
+            phone: record.phone,
+            fax: record.fax || '',
+            hotelName: record.hotelName || '',
+            hotelConfirmation: record.hotelConfirmation || '',
+            additionalInformation: record.additionalInformation || '',
+            letterEmailedDate: record.letterEmailedDate ? new Date(record.letterEmailedDate) : undefined,
+            hardCopyMailedDate: record.hardCopyMailedDate ? new Date(record.hardCopyMailedDate) : undefined,
+            addressToMailHardCopy: record.addressToMailHardCopy || '',
+            letterEmailed: record.letterEmailed === 'true' || false,
+            hardCopyMailed: record.hardCopyMailed === 'true' || false,
+            // Update status based on CSV data
+            status: record.status?.toLowerCase() === 'complete' ? 'Complete' : APPLICATION_STATUSES[0],
+            lastUpdatedBy: req.user._id,
+            updatedAt: new Date()
           });
-          continue; // Skip to next record
+
+          await existingApplication.save();
+
+          results.push({
+            success: true,
+            name: `${record.firstName} ${record.lastName}`,
+            updated: true,
+            reason: `Updated existing application for passport ${record.passportNumber}`
+          });
+          continue; // Move to next record
         }
 
         // Parse and validate applicationDate
@@ -241,18 +352,18 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
       }
     }
 
-    // Update the response to include skipped records
-    const skippedRecords = results.filter(r => r.skipped);
-    const successfulRecords = results.filter(r => r.success && !r.skipped);
+    // Update the response to include updated records
+    const updatedRecords = results.filter(r => r.updated);
+    const newRecords = results.filter(r => r.success && !r.updated);
 
     res.json({
       message: 'Import completed',
       total: records.length,
-      successful: successfulRecords.length,
-      skipped: skippedRecords.length,
+      successful: newRecords.length,
+      updated: updatedRecords.length,
       failed: errors.length,
       errors,
-      skippedRecords
+      updatedRecords
     });
   } catch (error) {
     console.error('Import error:', error);

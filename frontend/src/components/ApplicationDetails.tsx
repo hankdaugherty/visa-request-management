@@ -10,7 +10,7 @@ const APPLICATION_STATUSES = ['Pending', 'Complete', 'Rejected'];
 
 interface ApplicationField {
   name: string;
-  value: string | boolean | Date;
+  value: string | boolean | Date | null | undefined;
   type: 'text' | 'date' | 'email' | 'tel' | 'checkbox' | 'select';
   editable: boolean;
   options?: Array<string | { value: string; label: string }>;
@@ -34,7 +34,31 @@ interface Application {
     lastName: string;
     email: string;
   };
-  // ... other fields
+  firstName: string;
+  lastName: string;
+  email: string;
+  birthdate?: string;
+  gender?: string;
+  passportNumber?: string;
+  passportIssuingCountry?: string;
+  passportExpirationDate?: string;
+  dateOfArrival?: string;
+  dateOfDeparture?: string;
+  companyName?: string;
+  position?: string;
+  companyMailingAddress1?: string;
+  companyMailingAddress2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  phone?: string;
+  fax?: string;
+  hotelName?: string;
+  hotelConfirmation?: string;
+  additionalInformation?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function ApplicationDetails({ isAdmin = false }) {
@@ -206,7 +230,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
         const countryLabel = countries.find(c => c.value === field.value)?.label || field.value;
         return <div className="mt-1">{countryLabel}</div>;
       }
-      return <div className="mt-1">{field.value?.toString()}</div>;
+      return <div className="mt-1">{field.value ? (field.value instanceof Date ? field.value.toLocaleDateString() : String(field.value)) : ''}</div>;
     }
 
     // In edit mode, show appropriate input
@@ -525,7 +549,14 @@ export default function ApplicationDetails({ isAdmin = false }) {
                       </div>
                     ) : (
                       <div className="mt-1 space-y-1">
-                        {formatAddress(application).map((line, index) => (
+                        {formatAddress({
+                          companyMailingAddress1: application.companyMailingAddress1 || '',
+                          companyMailingAddress2: application.companyMailingAddress2,
+                          city: application.city || '',
+                          state: application.state || '',
+                          postalCode: application.postalCode || '',
+                          country: application.country || ''
+                        }).map((line, index) => (
                           <div key={index} className="text-gray-900">{line}</div>
                         ))}
                       </div>
@@ -588,16 +619,19 @@ export default function ApplicationDetails({ isAdmin = false }) {
                 </div>
               )}
 
-              {/* Additional Information */}
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold mb-4 text-left">Additional Information</h2>
-                {renderField({
-                  name: 'additionalInformation',
-                  value: application.additionalInformation || '',
-                  type: 'text',
-                  editable: true
-                })}
-              </div>
+                             {/* Additional Information */}
+               <div className="p-6 border-b border-gray-200">
+                 <h2 className="text-lg font-semibold mb-4 text-left">Additional Information</h2>
+                 <div className="text-left">
+                   <label className="block text-sm font-medium text-gray-700">Additional Information</label>
+                   {renderField({
+                     name: 'additionalInformation',
+                     value: application.additionalInformation || '',
+                     type: 'text',
+                     editable: true
+                   })}
+                 </div>
+               </div>
 
               {/* Application Status */}
               <div className="p-6 border-b border-gray-200">
@@ -638,21 +672,24 @@ export default function ApplicationDetails({ isAdmin = false }) {
                       </div>
                     )}
                   </div>
-                  <div className="text-left">
-                    <label className="block text-sm font-medium text-gray-700">Hard Copy Mailed Date</label>
-                    {isEditing && isAdminView ? (
-                      <input
-                        type="date"
-                        value={editedFields.hardCopyMailedDate ? formatDateForInput(editedFields.hardCopyMailedDate) : ''}
-                        onChange={(e) => handleFieldChange('hardCopyMailedDate', e.target.value)}
-                        className={inputClass}
-                      />
-                    ) : (
-                      <div className="mt-1">
-                        {application.hardCopyMailedDate ? formatDate(application.hardCopyMailedDate) : 'Not mailed yet'}
-                      </div>
-                    )}
-                  </div>
+                  {/* Only show Hard Copy Mailed Date for admins or when there's a date value */}
+                  {(isAdminUser || application.hardCopyMailedDate) && (
+                    <div className="text-left">
+                      <label className="block text-sm font-medium text-gray-700">Hard Copy Mailed Date</label>
+                      {isEditing && isAdminView ? (
+                        <input
+                          type="date"
+                          value={editedFields.hardCopyMailedDate ? formatDateForInput(editedFields.hardCopyMailedDate) : ''}
+                          onChange={(e) => handleFieldChange('hardCopyMailedDate', e.target.value)}
+                          className={inputClass}
+                        />
+                      ) : (
+                        <div className="mt-1">
+                          {application.hardCopyMailedDate ? formatDate(application.hardCopyMailedDate) : 'Not mailed yet'}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div className="text-left">
                     <label className="block text-sm font-medium text-gray-700">Last Updated</label>
                     <div className="mt-1">{formatDateWithTime(application.updatedAt)}</div>
