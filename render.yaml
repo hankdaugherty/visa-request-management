@@ -1,0 +1,36 @@
+# Exported from Render on 2025-08-07T16:53:36Z
+services:
+- type: web
+  name: visa-request-management
+  runtime: node
+  repo: https://github.com/hankdaugherty/visa-request-management
+  plan: starter
+  envVars:
+  - key: FRONTEND_URL
+    sync: false
+  - key: SMTP_FROM
+    sync: false
+  - key: SMTP_PASS
+    sync: false
+  - key: SMTP_USER
+    sync: false
+  - key: SMTP_PORT
+    sync: false
+  - key: SMTP_HOST
+    sync: false
+  - key: CORS_ORIGIN
+    sync: false
+  - key: MONGODB_URI
+    sync: false
+  - key: NODE_ENV
+    sync: false
+  - key: JWT_SECRET
+    sync: false
+  - key: PORT
+    sync: false
+  region: virginia
+  buildCommand: npm install
+  startCommand: npm start
+  autoDeployTrigger: commit
+  rootDir: backend
+version: "1"
