@@ -24,7 +24,8 @@ app.use(cors({
       'http://localhost:5173',
       'https://3gpp-visa-letter-request-portal.vercel.app',
       'https://visas.3gppmeetings.atis.org',
-      'https://visa-request-management-sg.vercel.app' // Singapore frontend
+      'https://visa-request-management-sg.vercel.app', // Singapore frontend
+      'https://visa-request-management-sg-git-main-hankdaughertys-projects.vercel.app' // Actual Singapore frontend URL
     ];
     
     // Allow requests with no origin (like mobile apps or curl requests)
