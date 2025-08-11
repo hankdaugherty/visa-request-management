@@ -51,8 +51,10 @@ export default function AdminApplications() {
   const [sortBy, setSortBy] = useState<'date' | 'status'>('status');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [stats, setStats] = useState({ total: 0, pending: 0, complete: 0, rejected: 0 });
+  const [searchTerm, setSearchTerm] = useState('');
   const itemsPerPage = 10;
   const navigate = useNavigate();
+  const [userHasManuallySelected, setUserHasManuallySelected] = useState(false);
 
   // Fetch meetings on mount
   useEffect(() => {
@@ -60,8 +62,30 @@ export default function AdminApplications() {
       try {
         const meetingsData = await meetingsApi.getAll();
         setMeetings(meetingsData);
+        
         if (meetingsData.length > 0 && !selectedMeetingId) {
-          setSelectedMeetingId(meetingsData[0]._id);
+          // Auto-select the next upcoming meeting
+          const now = new Date();
+          const upcomingMeetings = meetingsData
+            .filter(meeting => meeting.isActive && new Date(meeting.startDate) > now)
+            .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+          
+          if (upcomingMeetings.length > 0) {
+            // Select the next upcoming meeting
+            setSelectedMeetingId(upcomingMeetings[0]._id);
+          } else {
+            // If no upcoming meetings, select the most recent active meeting
+            const activeMeetings = meetingsData
+              .filter(meeting => meeting.isActive)
+              .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+            
+            if (activeMeetings.length > 0) {
+              setSelectedMeetingId(activeMeetings[0]._id);
+            } else if (meetingsData.length > 0) {
+              // Fallback to first meeting if no active meetings
+              setSelectedMeetingId(meetingsData[0]._id);
+            }
+          }
         }
       } catch (err: any) {
         setError(err.message || 'Failed to load meetings');
@@ -176,6 +200,24 @@ export default function AdminApplications() {
     .filter(meeting => meeting.isActive)
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
 
+  // Find the next upcoming meeting for visual indication
+  const now = new Date();
+  const nextUpcomingMeeting = sortedMeetings.find(meeting => new Date(meeting.startDate) > now);
+
+  // Only show auto-selection indicators if the user hasn't manually selected a meeting
+  const isAutoSelected = !userHasManuallySelected && nextUpcomingMeeting && selectedMeetingId === nextUpcomingMeeting._id;
+
+  // Filter applications based on search term
+  const filteredApplications = applications.filter(app => {
+    if (!searchTerm) return true;
+    
+    const searchLower = searchTerm.toLowerCase();
+    const fullName = `${app.firstName} ${app.lastName}`.toLowerCase();
+    const email = app.email.toLowerCase();
+    
+    return fullName.includes(searchLower) || email.includes(searchLower);
+  });
+
   if (loading) return <div className="p-4">Loading...</div>;
   if (error) return <div className="p-4 text-red-600">{error}</div>;
 
@@ -228,22 +270,39 @@ export default function AdminApplications() {
       <div className="bg-white rounded-lg shadow mb-6">
         <div className="p-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Applications by Meeting</h2>
+          {isAutoSelected && (
+            <p className="text-sm text-gray-600 mt-1">
+              Auto-selected: <span className="font-medium text-green-600">{nextUpcomingMeeting.name}</span> 
+              (starts {new Date(nextUpcomingMeeting.startDate).toLocaleDateString()})
+            </p>
+          )}
         </div>
         <div className="p-4 overflow-x-auto">
           <nav className="flex space-x-4">
-            {sortedMeetings.map(meeting => (
-              <button
-                key={meeting._id}
-                onClick={() => setSelectedMeetingId(meeting._id)}
-                className={`${
-                  selectedMeetingId === meeting._id
-                    ? 'text-indigo-600 border-indigo-500'
-                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}
-              >
-                {meeting.name}
-              </button>
-            ))}
+            {sortedMeetings.map(meeting => {
+              const isNextUpcoming = nextUpcomingMeeting && meeting._id === nextUpcomingMeeting._id;
+              const isSelected = selectedMeetingId === meeting._id;
+              
+              return (
+                <button
+                  key={meeting._id}
+                  onClick={() => {
+                    setSelectedMeetingId(meeting._id);
+                    setUserHasManuallySelected(true); // Mark that user has manually selected
+                  }}
+                  className={`${
+                    isSelected
+                      ? 'text-indigo-600 border-indigo-500'
+                      : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+                  } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm relative`}
+                >
+                  {meeting.name}
+                  {isAutoSelected && isNextUpcoming && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></span>
+                  )}
+                </button>
+              );
+            })}
           </nav>
         </div>
       </div>
@@ -256,6 +315,29 @@ export default function AdminApplications() {
         >
           Import Applications
         </button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="mb-4">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            placeholder="Search by name or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+          />
+        </div>
+        {searchTerm && (
+          <p className="mt-2 text-sm text-gray-600">
+            Showing {filteredApplications.length} of {applications.length} applications for "{searchTerm}"
+          </p>
+        )}
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -286,14 +368,14 @@ export default function AdminApplications() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {applications.length === 0 ? (
+            {filteredApplications.length === 0 ? (
               <tr>
                 <td colSpan={5} className="text-center py-8 text-gray-500">
-                  No applications found.
+                  {searchTerm ? 'No applications found matching your search.' : 'No applications found.'}
                 </td>
               </tr>
             ) : (
-              applications.map(app => (
+              filteredApplications.map(app => (
                 <tr key={app._id} className={getRowStyles(app.status)}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {app.firstName} {app.lastName}
