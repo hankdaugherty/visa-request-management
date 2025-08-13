@@ -174,6 +174,15 @@ const applicationSchema = new mongoose.Schema({
   lastUpdatedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
+  },
+  // Import tracking
+  isImported: {
+    type: Boolean,
+    default: false
+  },
+  importedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   }
 });
 

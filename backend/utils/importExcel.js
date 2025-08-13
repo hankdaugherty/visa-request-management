@@ -46,7 +46,10 @@ exports.importApplications = async (filePath, adminUserId) => {
             role: data.role,
             status: data.status || APPLICATION_STATUSES[0],
             submittedAt: new Date(data.submittedDate) || new Date(),
-            lastUpdatedBy: adminUserId
+            lastUpdatedBy: adminUserId,
+            // Mark as imported
+            isImported: true,
+            importedBy: adminUserId
           });
 
           await application.save();

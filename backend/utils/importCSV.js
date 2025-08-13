@@ -73,7 +73,10 @@ exports.importApplications = async (filePath, adminUserId) => {
             hardCopyMailedAddress: row['Address to mail hard copy'],
             hardCopyMailedDate: parseDate(row['Hard Copy Mailed Date']),
             additionalDocumentation: row['Additional Documentation'],
-            lastUpdatedBy: adminUserId
+            lastUpdatedBy: adminUserId,
+            // Mark as imported
+            isImported: true,
+            importedBy: adminUserId
           });
 
           await application.save();

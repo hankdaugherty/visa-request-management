@@ -140,8 +140,11 @@ router.get('/', auth, async (req, res) => {
       }
     }
     
-    // For regular dashboard requests, return the old format (no pagination)
-    const applications = await Application.find(query)
+    // For regular dashboard requests, only show applications created by the user (not imported)
+    const applications = await Application.find({
+      ...query,
+      isImported: { $ne: true }  // Only show non-imported applications
+    })
       .populate('meeting')
       .populate('userId', 'firstName lastName email')
       .sort({ createdAt: -1 });
@@ -268,7 +271,10 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
             // Update status based on CSV data
             status: record.status?.toLowerCase() === 'approved' ? 'Approved' : APPLICATION_STATUSES[0],
             lastUpdatedBy: req.user._id,
-            updatedAt: new Date()
+            updatedAt: new Date(),
+            // Mark as imported
+            isImported: true,
+            importedBy: req.user._id
           });
 
           await existingApplication.save();
@@ -300,6 +306,9 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
           status: record.status?.toLowerCase() === 'approved' ? 'Approved' : APPLICATION_STATUSES[0],
           entryDate: applicationDate,
           createdAt: applicationDate,  // This should now stick due to immutable: true
+          // Mark as imported
+          isImported: true,
+          importedBy: req.user._id,
           
           // Required fields in order
           email: record.email,
