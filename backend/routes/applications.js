@@ -7,6 +7,10 @@ const Meeting = require('../models/Meeting');
 const Application = require('../models/Application');
 const { APPLICATION_STATUSES } = require('../constants/statuses');
 const upload = multer({ storage: multer.memoryStorage() });
+const pdfService = require('../services/pdfService');
+const fs = require('fs-extra');
+const path = require('path');
+const { PDFDocument, PDFForm } = require('pdf-lib');
 
 // Add this helper function at the top
 const getMeetingByName = async (name) => {
@@ -38,13 +42,13 @@ router.get('/stats', auth, async (req, res) => {
     
     // Get counts by status
     const pending = await Application.countDocuments({ ...query, status: { $regex: /^pending$/i } });
-    const complete = await Application.countDocuments({ ...query, status: { $regex: /^complete$/i } });
+    const approved = await Application.countDocuments({ ...query, status: { $regex: /^approved$/i } });
     const rejected = await Application.countDocuments({ ...query, status: { $regex: /^rejected$/i } });
 
     res.json({
       total,
       pending,
-      complete,
+      approved,
       rejected
     });
   } catch (error) {
@@ -89,7 +93,7 @@ router.get('/', auth, async (req, res) => {
           const statusB = b.status.toLowerCase();
           
           // Define priority order - always prioritize pending first
-          const priority = { 'pending': 1, 'complete': 2, 'rejected': 3 };
+          const priority = { 'pending': 1, 'approved': 2, 'rejected': 3 };
           
           const priorityA = priority[statusA] || 4;
           const priorityB = priority[statusB] || 4;
@@ -262,7 +266,7 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
             letterEmailed: record.letterEmailed === 'true' || false,
             hardCopyMailed: record.hardCopyMailed === 'true' || false,
             // Update status based on CSV data
-            status: record.status?.toLowerCase() === 'complete' ? 'Complete' : APPLICATION_STATUSES[0],
+            status: record.status?.toLowerCase() === 'approved' ? 'Approved' : APPLICATION_STATUSES[0],
             lastUpdatedBy: req.user._id,
             updatedAt: new Date()
           });
@@ -293,7 +297,7 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
         const application = new Application({
           // System fields
           userId: req.user._id,
-          status: record.status?.toLowerCase() === 'complete' ? 'Complete' : APPLICATION_STATUSES[0],
+          status: record.status?.toLowerCase() === 'approved' ? 'Approved' : APPLICATION_STATUSES[0],
           entryDate: applicationDate,
           createdAt: applicationDate,  // This should now stick due to immutable: true
           
@@ -371,6 +375,88 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
       message: 'Error processing import',
       error: error.message
     });
+  }
+});
+
+// Generate PDF for approved applications - ADMIN ONLY (intentionally restricted for now)
+router.get('/:id/pdf', auth, async (req, res) => {
+  console.log('🚀 PDF ROUTE ENTERED - Starting PDF generation process');
+  try {
+    console.log('PDF route hit for application ID:', req.params.id);
+    console.log('User requesting PDF:', req.user._id, 'Role:', req.user.role);
+    
+    const application = await Application.findById(req.params.id)
+      .populate('meeting');
+    
+    if (!application) {
+      console.log('Application not found for ID:', req.params.id);
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    console.log('Application found:', {
+      id: application._id,
+      status: application.status,
+      userId: application.userId,
+      meeting: application.meeting
+    });
+
+    // Check if user has permission - Only admins can generate PDFs
+    if (req.user.role !== 'admin') {
+      console.log('Permission denied. User:', req.user._id, 'Role:', req.user.role, 'Not admin');
+      return res.status(403).json({ message: 'Only administrators can generate visa letters' });
+    }
+
+    // Check if application is approved
+    if (application.status.toLowerCase() !== 'approved') {
+      console.log('Application not approved. Status:', application.status);
+      return res.status(400).json({ message: 'PDF can only be generated for approved applications' });
+    }
+
+    console.log('Generating PDF for approved application...');
+    
+    // Test PDF service import
+    console.log('🔍 Testing PDF service import...');
+    console.log('pdfService type:', typeof pdfService);
+    console.log('pdfService methods:', Object.getOwnPropertyNames(pdfService));
+    console.log('pdfService.generateVisaLetter type:', typeof pdfService.generateVisaLetter);
+    
+    // Debug the application data being passed to PDF service
+    console.log('=== Route Debug - Application Data ===');
+    console.log('Application object keys:', Object.keys(application));
+    console.log('Application firstName:', application.firstName);
+    console.log('Application lastName:', application.lastName);
+    console.log('Application email:', application.email);
+    console.log('Meeting data:', application.meeting);
+    
+    // Generate PDF
+    let pdfResult;
+    try {
+      console.log('About to call pdfService.generateVisaLetter...');
+      pdfResult = await pdfService.generateVisaLetter(application, application.meeting);
+      console.log('PDF generated successfully:', pdfResult);
+    } catch (pdfError) {
+      console.error('Error in PDF generation:', pdfError);
+      console.error('PDF error stack:', pdfError.stack);
+      throw pdfError; // Re-throw to be caught by outer catch
+    }
+    
+    // Update application with PDF generation info
+    application.pdfGenerated = true;
+    application.pdfGeneratedDate = new Date();
+    await application.save();
+    
+    // Send the file
+    res.download(pdfResult.path, pdfResult.filename, (err) => {
+      if (err) {
+        console.error('Error sending file:', err);
+      }
+      // Clean up the file after sending
+      fs.remove(pdfResult.path).catch(console.error);
+    });
+    
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    res.status(500).json({ message: 'Error generating PDF', error: error.message });
   }
 });
 
@@ -474,5 +560,7 @@ router.post('/', auth, async (req, res) => {
     res.status(500).json({ message: 'Error creating application', error: error.message });
   }
 });
+
+
 
 module.exports = router; 

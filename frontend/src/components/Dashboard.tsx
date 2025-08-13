@@ -11,7 +11,10 @@ interface Application {
   email: string;
   status: string;
   createdAt: string;
-  meeting: string;
+  meeting: {
+    _id: string;
+    name: string;
+  };
 }
 
 export default function Dashboard() {
@@ -19,6 +22,7 @@ export default function Dashboard() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openActionsMenu, setOpenActionsMenu] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -42,30 +46,61 @@ export default function Dashboard() {
   };
 
   const getStatusConfig = (status: string) => {
-    const configs = {
-      approved: {
-        bgColor: 'bg-green-100',
-        textColor: 'text-green-800',
-        icon: '✓',
-      },
-      rejected: {
-        bgColor: 'bg-red-100',
-        textColor: 'text-red-800',
-        icon: '✕',
-      },
-      pending: {
-        bgColor: 'bg-yellow-100',
-        textColor: 'text-yellow-800',
-        icon: '⏳',
-      },
-      complete: {
-        bgColor: 'bg-blue-100',
-        textColor: 'text-blue-800',
-        icon: '✓',
-      }
-    };
-    return configs[status.toLowerCase()] || configs.pending;
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return {
+          bgColor: 'bg-yellow-100',
+          textColor: 'text-yellow-800',
+          icon: '⏳',
+        };
+      case 'rejected':
+        return {
+          bgColor: 'bg-red-100',
+          textColor: 'text-red-800',
+          icon: '✕',
+        };
+      case 'approved':
+        return {
+          bgColor: 'bg-green-100',
+          textColor: 'text-green-800',
+          icon: '✓',
+        };
+      default:
+        return {
+          bgColor: 'bg-gray-100',
+          textColor: 'text-gray-800',
+          icon: '?',
+        };
+    }
   };
+
+  const getRowStyles = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'bg-yellow-50 hover:bg-yellow-100';
+      case 'rejected':
+        return 'bg-red-50 hover:bg-red-100';
+      case 'approved':
+        return 'bg-green-50 hover:bg-green-100';
+      default:
+        return 'bg-white hover:bg-gray-50';
+    }
+  };
+
+  const toggleActionsMenu = (id: string) => {
+    setOpenActionsMenu(openActionsMenu === id ? null : id);
+  };
+
+  const closeActionsMenu = () => {
+    setOpenActionsMenu(null);
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => closeActionsMenu();
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const EmptyState = () => (
     <div className="text-center py-12">
@@ -98,8 +133,10 @@ export default function Dashboard() {
               <li>Submit new visa letter requests</li>
               <li>Track the status of your existing visa letter requests</li>
               <li>View and update your visa letter request details</li>
-              <li>Upload required documents</li>
             </ul>
+            <p className="text-xs text-gray-500 italic">
+              Note: This is a separate system from the official <a href="https://portal.3gpp.org/" target="_blank" rel="noopener noreferrer" className="underline">3GPP Portal</a>.
+            </p>
             <p className="text-sm sm:text-base text-gray-600">
               To get started, click the "New Application" button in the header to submit a new visa letter request.
             </p>
@@ -107,9 +144,16 @@ export default function Dashboard() {
 
           {/* Applications Table - Made responsive with ResponsiveTable component */}
           <div className="bg-white rounded-lg shadow mb-8">
-            <div className="p-4 sm:p-6 border-b border-gray-200">
+            <div className="p-4 sm:p-6 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900">My Applications</h2>
+              <button
+                onClick={() => navigate('/applications/new')}
+                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                + New Application
+              </button>
             </div>
+            
             <ResponsiveTable>
               {loading ? (
                 <div className="flex justify-center items-center h-32">
@@ -136,7 +180,7 @@ export default function Dashboard() {
                     {applications.map(app => (
                       <tr 
                         key={app._id}
-                        className="hover:bg-gray-50 transition-colors duration-150 ease-in-out"
+                        className={getRowStyles(app.status)}
                       >
                         <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
                           {app.meeting?.name || 'Unknown Meeting'}
@@ -148,23 +192,37 @@ export default function Dashboard() {
                           {new Date(app.createdAt).toLocaleDateString()}
                         </td>
                         <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm">
-                          {(() => {
-                            const config = getStatusConfig(app.status);
-                            return (
-                              <span className={`inline-flex items-center px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full text-xs font-medium ${config.bgColor} ${config.textColor}`}>
-                                <span className="mr-1">{config.icon}</span>
-                                {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
-                              </span>
-                            );
-                          })()}
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusConfig(app.status).bgColor} ${getStatusConfig(app.status).textColor}`}>
+                            {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
+                          </span>
                         </td>
                         <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-xs sm:text-sm">
-                          <button
-                            onClick={() => handleViewDetails(app._id)}
-                            className="inline-flex items-center px-2 py-1 sm:px-3 sm:py-2 border border-transparent text-xs sm:text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                          >
-                            View Details
-                          </button>
+                          <div className="relative inline-block text-right">
+                            <button
+                              className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleActionsMenu(app._id);
+                              }}
+                            >
+                              Actions
+                              <svg className="-mr-1 h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                            {openActionsMenu === app._id && (
+                              <div className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                <div className="py-1">
+                                  <button
+                                    onClick={() => { handleViewDetails(app._id); closeActionsMenu(); }}
+                                    className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                  >
+                                    View Details
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}

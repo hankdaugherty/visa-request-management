@@ -26,12 +26,50 @@ router.post('/register', async (req, res) => {
     
     console.log('Registration data received:', { email, firstName, lastName }); // Debug log
 
+    // Input validation
+    if (!email || !password || !firstName || !lastName) {
+      return res.status(400).json({
+        message: 'Missing required fields',
+        details: 'Please provide email, password, first name, and last name.',
+        errorCode: 'MISSING_FIELDS',
+        missingFields: {
+          email: !email,
+          password: !password,
+          firstName: !firstName,
+          lastName: !lastName
+        }
+      });
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        message: 'Invalid email format',
+        details: 'Please enter a valid email address.',
+        errorCode: 'INVALID_EMAIL'
+      });
+    }
+
+    // Password strength validation
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: 'Password too short',
+        details: 'Password must be at least 6 characters long.',
+        errorCode: 'WEAK_PASSWORD'
+      });
+    }
+
     // Check if user already exists
     console.log('Checking for existing user...'); // Debug log
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       console.log('User already exists:', email); // Debug log
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ 
+        message: 'User already exists',
+        details: 'An account with this email address is already registered. Please use a different email or try logging in instead.',
+        errorCode: 'EMAIL_ALREADY_EXISTS'
+      });
     }
 
     console.log('No existing user found, proceeding with registration'); // Debug log
@@ -75,9 +113,26 @@ router.post('/register', async (req, res) => {
       stack: error.stack,
       name: error.name
     });
+    
+    // Provide more specific error messages based on error type
+    let userMessage = 'Registration failed. Please try again.';
+    let errorCode = 'REGISTRATION_ERROR';
+    
+    if (error.name === 'ValidationError') {
+      userMessage = 'Please check your input and try again.';
+      errorCode = 'VALIDATION_ERROR';
+    } else if (error.name === 'MongoError' && error.code === 11000) {
+      userMessage = 'An account with this email already exists.';
+      errorCode = 'DUPLICATE_EMAIL';
+    } else if (error.message.includes('password')) {
+      userMessage = 'Password requirements not met. Please try again.';
+      errorCode = 'PASSWORD_ERROR';
+    }
+    
     res.status(500).json({ 
-      message: 'Server error',
-      details: error.message 
+      message: userMessage,
+      details: error.message,
+      errorCode: errorCode
     });
   }
 });
@@ -94,7 +149,11 @@ router.post('/login', async (req, res) => {
     
     if (!user) {
       console.log('No user found with email:', email);
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ 
+        message: 'User not found',
+        details: 'No account exists with this email address. Please check your email or register for a new account.',
+        errorCode: 'USER_NOT_FOUND'
+      });
     }
 
     // Compare password
@@ -103,7 +162,11 @@ router.post('/login', async (req, res) => {
     
     if (!isMatch) {
       console.log('Password did not match for user:', email);
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ 
+        message: 'Incorrect password',
+        details: 'The password you entered is incorrect. Please try again or use the "Forgot Password" link to reset your password.',
+        errorCode: 'INCORRECT_PASSWORD'
+      });
     }
 
     // Create JWT token
@@ -124,7 +187,27 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error' });
+    
+    // Provide more specific error messages based on error type
+    let userMessage = 'Login failed. Please try again.';
+    let errorCode = 'LOGIN_ERROR';
+    
+    if (error.name === 'ValidationError') {
+      userMessage = 'Please check your input and try again.';
+      errorCode = 'VALIDATION_ERROR';
+    } else if (error.name === 'JsonWebTokenError') {
+      userMessage = 'Authentication error. Please try logging in again.';
+      errorCode = 'JWT_ERROR';
+    } else if (error.message.includes('password')) {
+      userMessage = 'Password verification failed. Please try again.';
+      errorCode = 'PASSWORD_ERROR';
+    }
+    
+    res.status(500).json({ 
+      message: userMessage,
+      details: error.message,
+      errorCode: errorCode
+    });
   }
 });
 

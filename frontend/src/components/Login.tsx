@@ -37,7 +37,39 @@ export default function Login() {
       navigate('/');
     } catch (error) {
       console.error('Login error:', error);
-      setError('Invalid email or password');
+      
+      // Extract specific error message from the error object
+      let errorMessage = 'Invalid email or password';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = (error as any).message;
+      }
+      
+      // Provide user-friendly messages for common errors
+      if (errorMessage.includes('User not found')) {
+        errorMessage = 'No account found with this email address. Please check your email or register for a new account.';
+      } else if (errorMessage.includes('Incorrect password')) {
+        errorMessage = 'The password you entered is incorrect. Please try again or use the "Forgot Password" link to reset your password.';
+      } else if (errorMessage.includes('Invalid credentials')) {
+        errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+      } else if (errorMessage.includes('Server error')) {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+      } else if (errorMessage.includes('Login failed')) {
+        errorMessage = 'Login failed. Please try again or contact support if the problem persists.';
+      } else if (errorMessage.includes('Authentication error')) {
+        errorMessage = 'Authentication error. Please try logging in again.';
+      }
+      
+      // Add specific guidance for 3GPP Portal users
+      if (errorMessage.includes('User not found') || errorMessage.includes('No account found')) {
+        errorMessage += ' Note: This system is separate from the official 3GPP Portal. If you have a 3GPP Portal account, you will need to create a new account here.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -46,6 +78,24 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
+        {/* Important Disclaimer - At the very top */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-yellow-800">
+                <strong>Important:</strong> This visa management system is <strong>NOT affiliated</strong> with the official 
+                <a href="https://portal.3gpp.org/" target="_blank" rel="noopener noreferrer" className="underline ml-1">3GPP Portal</a>. 
+                You cannot use your existing 3GPP Portal credentials here.
+              </p>
+            </div>
+          </div>
+        </div>
+        
         <div>
           {/* 3GPP Logo */}
           <div className="flex justify-center mb-6">

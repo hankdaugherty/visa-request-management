@@ -50,11 +50,13 @@ export default function AdminApplications() {
   const [totalPages, setTotalPages] = useState(1);
   const [sortBy, setSortBy] = useState<'date' | 'status'>('status');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [stats, setStats] = useState({ total: 0, pending: 0, complete: 0, rejected: 0 });
+  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
   const [searchTerm, setSearchTerm] = useState('');
   const itemsPerPage = 10;
   const navigate = useNavigate();
   const [userHasManuallySelected, setUserHasManuallySelected] = useState(false);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [openActionsMenu, setOpenActionsMenu] = useState<string | null>(null);
 
   // Fetch meetings on mount
   useEffect(() => {
@@ -175,7 +177,7 @@ export default function AdminApplications() {
         return 'bg-yellow-50 hover:bg-yellow-100';
       case 'rejected':
         return 'bg-red-50 hover:bg-red-100';
-      case 'complete':
+      case 'approved':
         return 'bg-green-50 hover:bg-green-100';
       default:
         return 'bg-white hover:bg-gray-50';
@@ -188,7 +190,7 @@ export default function AdminApplications() {
         return 'bg-yellow-100 text-yellow-800';
       case 'rejected':
         return 'bg-red-100 text-red-800';
-      case 'complete':
+      case 'approved':
         return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
@@ -217,6 +219,55 @@ export default function AdminApplications() {
     
     return fullName.includes(searchLower) || email.includes(searchLower);
   });
+
+  const handleDownloadPDF = async (application: Application) => {
+    try {
+      // Use VITE_API_URL if available, otherwise fallback to localhost:5000
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const url = `${baseUrl}/api/applications/${application._id}/pdf`;
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `visa-request-letter-${application.firstName}-${application.lastName}.pdf`;
+      
+      // Add authorization header
+      const token = localStorage.getItem('token');
+      if (token) {
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const blob = await response.blob();
+          const downloadUrl = window.URL.createObjectURL(blob);
+          link.href = downloadUrl;
+          link.click();
+          window.URL.revokeObjectURL(downloadUrl);
+        } else {
+          throw new Error('Failed to download PDF');
+        }
+      }
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      alert('Failed to download PDF. Please try again.');
+    }
+  };
+
+  const toggleActionsMenu = (id: string) => {
+    setOpenActionsMenu(openActionsMenu === id ? null : id);
+  };
+
+  const closeActionsMenu = () => {
+    setOpenActionsMenu(null);
+  };
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => closeActionsMenu();
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   if (loading) return <div className="p-4">Loading...</div>;
   if (error) return <div className="p-4 text-red-600">{error}</div>;
@@ -260,7 +311,7 @@ export default function AdminApplications() {
             </div>
             <div className="ml-4">
               <p className="text-gray-500">Approved</p>
-              <p className="text-2xl font-bold">{stats.complete}</p>
+              <p className="text-2xl font-bold">{stats.approved}</p>
             </div>
           </div>
         </div>
@@ -392,18 +443,46 @@ export default function AdminApplications() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => navigate(`/admin/applications/${app._id}`)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-4"
-                    >
-                      View
-                    </button>
-                    <button
-                      onClick={() => handleDelete(app)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
+                    <div className="relative inline-block text-right">
+                      <button
+                        className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleActionsMenu(app._id);
+                        }}
+                      >
+                        Actions
+                        <svg className="-mr-1 h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                      {openActionsMenu === app._id && (
+                        <div className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                          <div className="py-1">
+                            <button
+                              onClick={() => { navigate(`/admin/applications/${app._id}`); closeActionsMenu(); }}
+                              className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                              View
+                            </button>
+                            {app.status.toLowerCase() === 'approved' && (
+                              <button
+                                onClick={() => { handleDownloadPDF(app); closeActionsMenu(); }}
+                                className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              >
+                                Download PDF
+                              </button>
+                            )}
+                            <button
+                              onClick={() => { handleDelete(app); closeActionsMenu(); }}
+                              className="flex w-full items-center px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))

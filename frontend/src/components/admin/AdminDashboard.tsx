@@ -28,7 +28,7 @@ export default function AdminDashboard() {
   const stats = {
     total: applications.length,
     pending: applications.filter(app => app.status.toLowerCase() === 'pending').length,
-    approved: applications.filter(app => app.status.toLowerCase() === 'complete').length
+    approved: applications.filter(app => app.status.toLowerCase() === 'approved').length
   };
 
   useEffect(() => {

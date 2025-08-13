@@ -6,7 +6,7 @@ import { countries } from '../utils/countries';
 
 // Constants
 const GENDER_OPTIONS = ['Male', 'Female', 'Other', 'Prefer not to say'];
-const APPLICATION_STATUSES = ['Pending', 'Complete', 'Rejected'];
+const APPLICATION_STATUSES = ['Pending', 'Approved', 'Rejected'];
 
 interface ApplicationField {
   name: string;
@@ -73,6 +73,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
   const currentUserId = localStorage.getItem('userId');
   const userRole = localStorage.getItem('userRole');
   const isAdminUser = userRole === 'admin' || isAdmin;
+  const [pdfGenerating, setPdfGenerating] = useState(false);
 
   const canEdit = () => {
     if (!application) {
@@ -227,7 +228,7 @@ export default function ApplicationDetails({ isAdmin = false }) {
       }
       // Special handling for country fields to show labels instead of values
       if (field.name === 'passportIssuingCountry' || field.name === 'country') {
-        const countryLabel = countries.find(c => c.value === field.value)?.label || field.value;
+        const countryLabel = countries.find(c => c.value === field.value)?.label || String(field.value || '');
         return <div className="mt-1">{countryLabel}</div>;
       }
       return <div className="mt-1">{field.value ? (field.value instanceof Date ? field.value.toLocaleDateString() : String(field.value)) : ''}</div>;
@@ -300,6 +301,60 @@ export default function ApplicationDetails({ isAdmin = false }) {
     ].filter(line => line && line.trim()); // Remove empty lines
 
     return lines;
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!application) return;
+    
+    try {
+      setPdfGenerating(true);
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Use VITE_API_URL if available, otherwise fallback to localhost:5000
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const url = `${baseUrl}/api/applications/${application._id}/pdf`;
+      console.log('Attempting to download PDF from:', url);
+      console.log('Application ID:', application._id);
+      console.log('Application status:', application.status);
+      console.log('Base URL used:', baseUrl);
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        console.log('Blob received, size:', blob.size);
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = `visa-request-letter-${application.firstName}-${application.lastName}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(downloadUrl);
+        console.log('PDF download initiated successfully');
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error response:', errorData);
+        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      alert(`Failed to download PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setPdfGenerating(false);
+    }
   };
 
   if (loading) return <div>Loading...</div>;
@@ -713,6 +768,33 @@ export default function ApplicationDetails({ isAdmin = false }) {
           </div>
         </div>
       </main>
+
+      {/* PDF Download Section - Show only for approved applications and admin users */}
+      {application && application.status.toLowerCase() === 'approved' && isAdminUser && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6 max-w-4xl mx-auto">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-green-800 mb-2 text-left">
+                Visa Letter Available
+              </h3>
+              <p className="text-green-700 text-left">
+                Your application has been approved. You can now download your visa letter.
+              </p>
+            </div>
+            <button
+              onClick={handleDownloadPDF}
+              disabled={pdfGenerating}
+              className={`px-4 py-2 rounded-md font-medium ${
+                pdfGenerating
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-700'
+              } text-white`}
+            >
+              {pdfGenerating ? 'Generating...' : 'Download Visa Letter'}
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

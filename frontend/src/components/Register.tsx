@@ -32,7 +32,33 @@ export default function Register() {
       localStorage.setItem('userRole', response.role);
       navigate('/');
     } catch (error) {
-      setError('Registration failed. Please try again.');
+      // Extract specific error message from the error object
+      let errorMessage = 'Registration failed. Please try again.';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = (error as any).message;
+      }
+      
+      // Provide user-friendly messages for common errors
+      if (errorMessage.includes('User already exists') || errorMessage.includes('already exists')) {
+        errorMessage = 'An account with this email already exists. Please use a different email or try logging in instead.';
+      } else if (errorMessage.includes('Invalid email') || errorMessage.includes('Invalid email format')) {
+        errorMessage = 'Please enter a valid email address.';
+      } else if (errorMessage.includes('Password') || errorMessage.includes('too short') || errorMessage.includes('weak')) {
+        errorMessage = 'Password requirements not met. Please ensure your password is at least 6 characters long.';
+      } else if (errorMessage.includes('firstName') || errorMessage.includes('lastName') || errorMessage.includes('Missing required fields')) {
+        errorMessage = 'Please provide both first and last names.';
+      } else if (errorMessage.includes('Missing required fields')) {
+        errorMessage = 'Please fill in all required fields.';
+      } else if (errorMessage.includes('Validation error')) {
+        errorMessage = 'Please check your input and try again.';
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -41,6 +67,40 @@ export default function Register() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
+        {/* Important Disclaimer - At the very top */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-yellow-800">
+                <strong>Important:</strong> This visa management system is <strong>NOT affiliated</strong> with the official 
+                <a href="https://portal.3gpp.org/" target="_blank" rel="noopener noreferrer" className="underline ml-1">3GPP Portal</a>. 
+                You cannot use your existing 3GPP Portal credentials here.
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Additional Clarification */}
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-blue-800">
+                <strong>New Account Required:</strong> Even if you have a 3GPP Portal account, you need to create a new account here specifically for the visa request system.
+              </p>
+            </div>
+          </div>
+        </div>
+        
         <div>
           {/* 3GPP Logo */}
           <div className="flex justify-center mb-6">

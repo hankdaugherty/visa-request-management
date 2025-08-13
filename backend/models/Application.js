@@ -144,6 +144,14 @@ const applicationSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  // PDF Generation Fields
+  pdfGenerated: {
+    type: Boolean,
+    default: false
+  },
+  pdfGeneratedDate: {
+    type: Date
+  },
   additionalDocumentation: {
     type: [String],
     trim: true
