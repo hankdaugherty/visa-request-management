@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { applications as applicationsApi } from '../utils/api';
 import { useNavigate } from 'react-router-dom';
 import Header from './common/Header';
 import ResponsiveTable from './common/ResponsiveTable';
+import { createPortal } from 'react-dom';
 
 interface Application {
   _id: string;
@@ -23,6 +24,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openActionsMenu, setOpenActionsMenu] = useState<string | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
+  const buttonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
 
   useEffect(() => {
     const fetchApplications = async () => {
@@ -126,19 +129,44 @@ export default function Dashboard() {
   };
 
   const toggleActionsMenu = (id: string) => {
-    setOpenActionsMenu(openActionsMenu === id ? null : id);
+    if (openActionsMenu === id) {
+      setOpenActionsMenu(null);
+      setDropdownPosition(null);
+    } else {
+      const button = buttonRefs.current[id];
+      if (button) {
+        const rect = button.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + window.scrollY,
+          left: rect.right - 224 // 224px is the width of the dropdown (w-56 = 14rem = 224px)
+        });
+      }
+      setOpenActionsMenu(id);
+    }
   };
 
   const closeActionsMenu = () => {
     setOpenActionsMenu(null);
+    setDropdownPosition(null);
   };
 
   // Close menu when clicking outside
   useEffect(() => {
-    const handleClickOutside = () => closeActionsMenu();
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openActionsMenu && !event.target) return;
+      
+      const target = event.target as Element;
+      const isDropdownButton = target.closest('button[ref]');
+      const isDropdownMenu = target.closest('.dropdown-menu');
+      
+      if (!isDropdownButton && !isDropdownMenu) {
+        closeActionsMenu();
+      }
+    };
+    
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
+  }, [openActionsMenu]);
 
   const EmptyState = () => (
     <div className="text-center py-12">
@@ -242,6 +270,7 @@ export default function Dashboard() {
                         <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-xs sm:text-sm">
                           <div className="relative inline-block text-right">
                             <button
+                              ref={(el) => buttonRefs.current[app._id] = el}
                               className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -253,26 +282,7 @@ export default function Dashboard() {
                                 <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
                               </svg>
                             </button>
-                            {openActionsMenu === app._id && (
-                              <div className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                                <div className="py-1">
-                                  <button
-                                    onClick={() => { handleViewDetails(app._id); closeActionsMenu(); }}
-                                    className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                  >
-                                    View Details
-                                  </button>
-                                  {app.status.toLowerCase() === 'approved' && (
-                                    <button
-                                      onClick={() => { handleDownloadVisaLetter(app._id); closeActionsMenu(); }}
-                                      className="flex w-full items-center px-4 py-2 text-sm text-green-700 hover:bg-green-100"
-                                    >
-                                      📄 Download Visa Letter
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            )}
+                            {/* Dropdown menu removed from here - will be rendered via portal */}
                           </div>
                         </td>
                       </tr>
@@ -284,6 +294,35 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
+      
+      {/* Portal-based dropdown menu */}
+      {openActionsMenu && dropdownPosition && createPortal(
+        <div 
+          className="fixed z-50 w-56 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none dropdown-menu"
+          style={{
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+          }}
+        >
+          <div className="py-1">
+            <button
+              onClick={() => { handleViewDetails(openActionsMenu); closeActionsMenu(); }}
+              className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              View Details
+            </button>
+            {applications.find(app => app._id === openActionsMenu)?.status.toLowerCase() === 'approved' && (
+              <button
+                onClick={() => { handleDownloadVisaLetter(openActionsMenu); closeActionsMenu(); }}
+                className="flex w-full items-center px-4 py-2 text-sm text-green-700 hover:bg-green-100"
+              >
+                📄 Download Visa Letter
+              </button>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
     </>
   );
 }
