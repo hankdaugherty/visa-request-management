@@ -45,6 +45,44 @@ export default function Dashboard() {
     navigate(`/applications/${id}`);
   };
 
+  const handleDownloadVisaLetter = async (id: string) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/applications/${id}/pdf`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to download visa letter');
+      }
+      
+      // Get the filename from the response headers
+      const contentDisposition = response.headers.get('content-disposition');
+      let filename = 'visa-letter.pdf';
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+      
+      // Create blob and download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading visa letter:', error);
+      alert('Failed to download visa letter. Please try again.');
+    }
+  };
+
   const getStatusConfig = (status: string) => {
     switch (status.toLowerCase()) {
       case 'pending':
@@ -192,9 +230,14 @@ export default function Dashboard() {
                           {new Date(app.createdAt).toLocaleDateString()}
                         </td>
                         <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm">
-                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusConfig(app.status).bgColor} ${getStatusConfig(app.status).textColor}`}>
-                            {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
-                          </span>
+                          <div className="flex items-center space-x-2">
+                            <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusConfig(app.status).bgColor} ${getStatusConfig(app.status).textColor}`}>
+                              {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
+                            </span>
+                            {app.status.toLowerCase() === 'approved' && (
+                              <span className="text-green-600 text-xs">📄 Visa Letter Available</span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-xs sm:text-sm">
                           <div className="relative inline-block text-right">
@@ -219,6 +262,14 @@ export default function Dashboard() {
                                   >
                                     View Details
                                   </button>
+                                  {app.status.toLowerCase() === 'approved' && (
+                                    <button
+                                      onClick={() => { handleDownloadVisaLetter(app._id); closeActionsMenu(); }}
+                                      className="flex w-full items-center px-4 py-2 text-sm text-green-700 hover:bg-green-100"
+                                    >
+                                      📄 Download Visa Letter
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             )}

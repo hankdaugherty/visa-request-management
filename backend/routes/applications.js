@@ -409,10 +409,13 @@ router.get('/:id/pdf', auth, async (req, res) => {
       meeting: application.meeting
     });
 
-    // Check if user has permission - Only admins can generate PDFs
+    // Check if user has permission - Users can generate PDFs for their own approved applications, admins can generate for any
     if (req.user.role !== 'admin') {
-      console.log('Permission denied. User:', req.user._id, 'Role:', req.user.role, 'Not admin');
-      return res.status(403).json({ message: 'Only administrators can generate visa letters' });
+      // For regular users, check if they own this application
+      if (application.userId.toString() !== req.user._id.toString()) {
+        console.log('Permission denied. User:', req.user._id, 'does not own application:', application._id);
+        return res.status(403).json({ message: 'You can only generate visa letters for your own applications' });
+      }
     }
 
     // Check if application is approved
