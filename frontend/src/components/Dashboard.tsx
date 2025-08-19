@@ -50,6 +50,12 @@ export default function Dashboard() {
 
   const handleDownloadVisaLetter = async (id: string) => {
     try {
+      // Find the application to get the name for the filename
+      const application = applications.find(app => app._id === id);
+      if (!application) {
+        throw new Error('Application not found');
+      }
+
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/applications/${id}/pdf`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -60,22 +66,13 @@ export default function Dashboard() {
         throw new Error('Failed to download visa letter');
       }
       
-      // Get the filename from the response headers
-      const contentDisposition = response.headers.get('content-disposition');
-      let filename = 'visa-letter.pdf';
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-        if (filenameMatch) {
-          filename = filenameMatch[1];
-        }
-      }
-      
-      // Create blob and download
+      // Create blob and download with proper naming convention
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = filename;
+      // Use the same naming convention as ApplicationDetails
+      a.download = `visa-request-letter-${application.firstName}-${application.lastName}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
