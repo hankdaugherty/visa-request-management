@@ -1,6 +1,7 @@
 const fs = require('fs-extra');
 const path = require('path');
 const { PDFDocument, PDFForm, StandardFonts, PDFName } = require('pdf-lib');
+const { execFile } = require('child_process');
 
 class PDFService {
   constructor() {
@@ -14,6 +15,61 @@ class PDFService {
     // Initialize template cache
     this.templateCache = null;
     this.templateLoaded = false;
+  }
+
+  // Try to normalize a PDF using Ghostscript if installed
+  normalizeWithGhostscript(filePath) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const exeCandidates = [
+          'gswin64c',
+          'gswin32c',
+          'gs'
+        ];
+        const outputPath = filePath.replace(/\.pdf$/i, '.normalized.pdf');
+        const args = [
+          '-sDEVICE=pdfwrite',
+          '-dCompatibilityLevel=1.4',
+          '-dDetectDuplicateImages=true',
+          '-dColorImageDownsampleType=/Bicubic',
+          '-dColorImageResolution=300',
+          '-dGrayImageDownsampleType=/Bicubic',
+          '-dGrayImageResolution=300',
+          '-dMonoImageDownsampleType=/Subsample',
+          '-dMonoImageResolution=600',
+          '-dPDFSETTINGS=/prepress',
+          '-dEmbedAllFonts=true',
+          '-dSubsetFonts=true',
+          '-dNOPAUSE',
+          '-dQUIET',
+          '-dBATCH',
+          `-sOutputFile=${outputPath}`,
+          filePath
+        ];
+
+        const tryExec = (idx) => {
+          if (idx >= exeCandidates.length) return reject(new Error('Ghostscript not found'));
+          const exe = exeCandidates[idx];
+          execFile(exe, args, { windowsHide: true }, async (err) => {
+            if (err) {
+              return tryExec(idx + 1);
+            }
+            try {
+              const exists = await fs.pathExists(outputPath);
+              if (!exists) return reject(new Error('Ghostscript did not produce output'));
+              const normalizedFilename = path.basename(outputPath);
+              return resolve({ path: outputPath, filename: normalizedFilename });
+            } catch (e) {
+              return reject(e);
+            }
+          });
+        };
+
+        tryExec(0);
+      } catch (e) {
+        return reject(e);
+      }
+    });
   }
 
   async loadTemplate() {
@@ -275,13 +331,19 @@ class PDFService {
       
       console.log('PDF saved to:', outputPath);
       
+      // Optionally normalize with Ghostscript if available for maximum print compatibility
+      const normalized = await this.normalizeWithGhostscript(outputPath).catch(() => null);
+      const finalPath = normalized?.path || outputPath;
+      const finalFilename = normalized?.filename || filename;
+
       // Analyze and report size optimization results
-      const sizeAnalysis = this.analyzePDFSize(originalTemplateSize, pdfBytes.length);
+      const finalStat = await fs.stat(finalPath);
+      const sizeAnalysis = this.analyzePDFSize(originalTemplateSize, finalStat.size);
       
       return {
-        filename,
-        path: outputPath,
-        size: pdfBytes.length,
+        filename: finalFilename,
+        path: finalPath,
+        size: finalStat.size,
         sizeAnalysis
       };
     } catch (error) {
