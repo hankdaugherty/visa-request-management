@@ -1,6 +1,6 @@
 const fs = require('fs-extra');
 const path = require('path');
-const { PDFDocument, PDFForm } = require('pdf-lib');
+const { PDFDocument, PDFForm, StandardFonts } = require('pdf-lib');
 
 class PDFService {
   constructor() {
@@ -209,47 +209,15 @@ class PDFService {
         
         console.log('Form fields populated successfully');
         
-        // Flatten the form fields to make them non-editable
+        // Ensure field appearances use a well-supported embedded font for print reliability
+        console.log('Embedding standard font and updating field appearances...');
+        const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        form.updateFieldAppearances(helvetica);
+        
+        // Flatten the form fields to make them non-editable and printable everywhere
         console.log('Flattening form fields to make them non-editable...');
         form.flatten();
         console.log('Form fields flattened successfully');
-        
-        // Optimize PDF for size reduction
-        console.log('Optimizing PDF for size reduction...');
-        
-        // Remove unused objects and compress
-        const pages = pdfDoc.getPages();
-        pages.forEach(page => {
-          // Clean up page resources
-          const resources = page.node.Resources();
-          if (resources) {
-            // Remove unused resources
-            const resourceKeys = Object.keys(resources);
-            resourceKeys.forEach(key => {
-              if (resources[key] && typeof resources[key] === 'object') {
-                // Clean up font resources
-                if (key === 'Font') {
-                  const fonts = resources[key];
-                  Object.keys(fonts).forEach(fontKey => {
-                    if (fonts[fontKey] && fonts[fontKey].ref) {
-                      // Ensure font is properly embedded and compressed
-                      try {
-                        const font = fonts[fontKey];
-                        if (font.encode) {
-                          font.encode = font.encode.filter(Boolean);
-                        }
-                      } catch (e) {
-                        // Ignore font optimization errors
-                      }
-                    }
-                  });
-                }
-              }
-            });
-          }
-        });
-        
-        console.log('PDF optimization completed');
         
       } catch (formError) {
         console.warn('Warning: Some form fields could not be filled:', formError.message);
@@ -276,13 +244,14 @@ class PDFService {
       
       const outputPath = path.join(this.outputDir, filename);
       
-      // Save the populated PDF with compression options
+      // Save the populated PDF with printer-friendly options
+      // - useObjectStreams: false improves compatibility with some drivers/printers
+      // - updateFieldAppearances: true to persist visual appearances
       const pdfBytes = await pdfDoc.save({
-        useObjectStreams: true,
+        useObjectStreams: false,
         addDefaultPage: false,
-        objectsPerTick: 20,
-        updateFieldAppearances: false,
-        // Enable compression
+        updateFieldAppearances: true,
+        // Enable compression while keeping compatibility
         compress: true
       });
       await fs.writeFile(outputPath, pdfBytes);
