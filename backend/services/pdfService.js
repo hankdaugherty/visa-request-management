@@ -1,6 +1,6 @@
 const fs = require('fs-extra');
 const path = require('path');
-const { PDFDocument, PDFForm, StandardFonts } = require('pdf-lib');
+const { PDFDocument, PDFForm, StandardFonts, PDFName } = require('pdf-lib');
 
 class PDFService {
   constructor() {
@@ -218,6 +218,23 @@ class PDFService {
         console.log('Flattening form fields to make them non-editable...');
         form.flatten();
         console.log('Form fields flattened successfully');
+
+        // Remove AcroForm and page annotations to avoid printer issues in Acrobat
+        try {
+          console.log('Removing AcroForm and page annotations for compatibility...');
+          // Delete AcroForm from catalog
+          if (pdfDoc.catalog.get(PDFName.of('AcroForm'))) {
+            pdfDoc.catalog.delete(PDFName.of('AcroForm'));
+          }
+          // Remove annotations from each page
+          const pagesForCleanup = pdfDoc.getPages();
+          pagesForCleanup.forEach((p) => {
+            try { p.node.delete(PDFName.of('Annots')); } catch (_) {}
+          });
+          console.log('AcroForm and annotations removed');
+        } catch (cleanupErr) {
+          console.log('Non-fatal cleanup error:', cleanupErr?.message);
+        }
         
       } catch (formError) {
         console.warn('Warning: Some form fields could not be filled:', formError.message);
