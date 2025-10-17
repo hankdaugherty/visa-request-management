@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../utils/api';
+import { authManager } from '../utils/auth';
 
 console.log("API base:", import.meta.env.VITE_API_BASE_URL);
 
@@ -33,6 +34,9 @@ export default function Login() {
       //   userId: localStorage.getItem('userId'),
       //   userRole: localStorage.getItem('userRole')
       // });
+
+      // Start session monitoring after successful login
+      authManager.startSessionMonitoring();
 
       navigate('/');
     } catch (error) {

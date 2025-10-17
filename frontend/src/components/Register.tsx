@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../utils/api';
+import { authManager } from '../utils/auth';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -30,6 +31,10 @@ export default function Register() {
       localStorage.setItem('token', response.token);
       localStorage.setItem('userId', response.userId);
       localStorage.setItem('userRole', response.role);
+      
+      // Start session monitoring after successful registration
+      authManager.startSessionMonitoring();
+      
       navigate('/');
     } catch (error) {
       // Extract specific error message from the error object

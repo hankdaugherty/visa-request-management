@@ -1,16 +1,14 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { authManager } from '../../utils/auth';
 
 export default function Header() {
   const navigate = useNavigate();
-  const isAdmin = localStorage.getItem('userRole') === 'admin';
+  const isAdmin = authManager.getUserRole() === 'admin';
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('userRole');
-    navigate('/login');
+    authManager.logout();
   };
 
   return (

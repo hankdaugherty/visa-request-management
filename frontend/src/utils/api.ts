@@ -1,4 +1,5 @@
 import { Application, User, Meeting } from '../types';
+import { authManager } from './auth';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -58,6 +59,12 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
         body: errorText
       });
       
+      // Handle 401 Unauthorized - token expired or invalid
+      if (response.status === 401) {
+        authManager.handleUnauthorized();
+        throw new Error('Session expired. Please log in again.');
+      }
+      
       try {
         const errorJson = JSON.parse(errorText);
         throw new Error(errorJson.message || 'Request failed');
@@ -68,9 +75,14 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
 
     const contentType = response.headers.get('content-type');
     if (contentType && contentType.includes('application/json')) {
-      return response.json();
+      const result = response.json();
+      // Refresh session monitoring after successful API call
+      authManager.refreshSessionMonitoring();
+      return result;
     }
     
+    // Refresh session monitoring after successful API call
+    authManager.refreshSessionMonitoring();
     return response;
   } catch (error) {
     console.error('API Request Error:', error);
