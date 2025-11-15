@@ -5,8 +5,10 @@ const { execFile } = require('child_process');
 
 class PDFService {
   constructor() {
-    // Update path to point to the backend directory where we'll store the template
-    this.templatePath = path.join(__dirname, '../templates/visa-letter-template.pdf');
+    // Default template path - will be determined dynamically based on meeting location
+    this.defaultTemplatePath = path.join(__dirname, '../templates/visa-letter-template.pdf');
+    this.canadaTemplatePath = path.join(__dirname, '../templates/canada-visa-letter-template.pdf');
+    this.templatePath = this.defaultTemplatePath;
     this.outputDir = path.join(__dirname, '../generated-pdfs');
     
     // Ensure output directory exists
@@ -15,6 +17,7 @@ class PDFService {
     // Initialize template cache
     this.templateCache = null;
     this.templateLoaded = false;
+    this.currentTemplatePath = null; // Track which template is currently cached
   }
 
   // Try to normalize a PDF using Ghostscript if installed
@@ -72,30 +75,58 @@ class PDFService {
     });
   }
 
-  async loadTemplate() {
+  // Check if a meeting location indicates Canada
+  isCanadaMeeting(location) {
+    if (!location) return false;
+    const locationLower = location.toLowerCase();
+    
+    // Check for "Canada" in the location string
+    if (locationLower.includes('canada')) return true;
+    
+    // Check for Canadian province/territory codes
+    const canadianProvinces = ['ab', 'bc', 'mb', 'nb', 'nl', 'ns', 'nt', 'nu', 'on', 'pe', 'qc', 'sk', 'yt'];
+    const provinceMatch = canadianProvinces.some(province => {
+      // Match province code as standalone or with comma/space (e.g., "Calgary, AB" or "Toronto ON")
+      return new RegExp(`\\b${province}\\b`, 'i').test(location);
+    });
+    
+    return provinceMatch;
+  }
+
+  async loadTemplate(templatePath = null) {
     try {
-      console.log('Loading PDF template from:', this.templatePath);
+      // Use provided template path or default
+      const pathToLoad = templatePath || this.templatePath;
+      
+      // If this template is already cached, skip loading
+      if (this.templateLoaded && this.currentTemplatePath === pathToLoad && this.templateCache) {
+        console.log('Template already cached, using existing cache');
+        return;
+      }
+      
+      console.log('Loading PDF template from:', pathToLoad);
       console.log('Current working directory:', process.cwd());
       console.log('__dirname:', __dirname);
       
       // Check if template file exists
-      if (!await fs.pathExists(this.templatePath)) {
-        console.error('Template file not found at:', this.templatePath);
+      if (!await fs.pathExists(pathToLoad)) {
+        console.error('Template file not found at:', pathToLoad);
         // List contents of templates directory
         try {
-          const templatesDir = path.dirname(this.templatePath);
+          const templatesDir = path.dirname(pathToLoad);
           const files = await fs.readdir(templatesDir);
           console.log('Files in templates directory:', files);
         } catch (dirError) {
           console.error('Error reading templates directory:', dirError);
         }
-        throw new Error(`Template file not found at: ${this.templatePath}`);
+        throw new Error(`Template file not found at: ${pathToLoad}`);
       }
       
-      const templateBytes = await fs.readFile(this.templatePath);
+      const templateBytes = await fs.readFile(pathToLoad);
       console.log('Template file read successfully, size:', templateBytes.length);
       this.templateCache = templateBytes;
       this.templateLoaded = true;
+      this.currentTemplatePath = pathToLoad;
       console.log('PDF template loaded and cached successfully');
     } catch (error) {
       console.error('Error loading PDF template:', error);
@@ -124,10 +155,16 @@ class PDFService {
         email: typeof application.email
       });
       
-      // Load template if not already loaded
-      if (!this.templateLoaded) {
-        await this.loadTemplate();
-      }
+      // Determine which template to use based on meeting location
+      const isCanada = this.isCanadaMeeting(meeting?.location);
+      const templatePathToUse = isCanada ? this.canadaTemplatePath : this.defaultTemplatePath;
+      
+      console.log('Meeting location:', meeting?.location);
+      console.log('Is Canada meeting:', isCanada);
+      console.log('Using template:', templatePathToUse);
+      
+      // Load the appropriate template
+      await this.loadTemplate(templatePathToUse);
       
       // Use cached template
       if (!this.templateCache) {
