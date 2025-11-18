@@ -387,6 +387,147 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
   }
 });
 
+// Export applications for a meeting as CSV - ADMIN ONLY
+router.get('/export', auth, async (req, res) => {
+  console.log('Export request received:', {
+    user: req.user,
+    meetingId: req.query.meetingId
+  });
+
+  // Check if user is admin
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Only admin users can export applications' });
+  }
+
+  if (!req.query.meetingId) {
+    return res.status(400).json({ message: 'Meeting ID is required' });
+  }
+
+  try {
+    // Fetch all applications for the meeting
+    const applications = await Application.find({ meeting: req.query.meetingId })
+      .populate('meeting', 'name')
+      .sort({ createdAt: -1 });
+
+    if (applications.length === 0) {
+      return res.status(404).json({ message: 'No applications found for this meeting' });
+    }
+
+    // Define CSV headers matching the import format
+    const headers = [
+      'email',
+      'lastName',
+      'firstName',
+      'birthdate',
+      'passportNumber',
+      'passportIssuingCountry',
+      'passportExpirationDate',
+      'dateOfArrival',
+      'dateOfDeparture',
+      'gender',
+      'companyName',
+      'position',
+      'companyMailingAddress1',
+      'companyMailingAddress2',
+      'city',
+      'state',
+      'postalCode',
+      'country',
+      'phone',
+      'fax',
+      'hotelName',
+      'hotelConfirmation',
+      'additionalInformation',
+      'meetingName',
+      'applicationDate',
+      'status',
+      'letterEmailed',
+      'letterEmailedDate',
+      'hardCopyMailed',
+      'hardCopyMailedDate',
+      'addressToMailHardCopy'
+    ];
+
+    // Helper function to escape CSV fields
+    const escapeCSV = (value) => {
+      if (value === null || value === undefined) return '';
+      const stringValue = String(value);
+      // If value contains comma, quote, or newline, wrap in quotes and escape quotes
+      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    };
+
+    // Helper function to format date as YYYY-MM-DD
+    const formatDate = (date) => {
+      if (!date) return '';
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return '';
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    // Build CSV content
+    let csvContent = headers.join(',') + '\n';
+
+    for (const app of applications) {
+      const row = [
+        escapeCSV(app.email),
+        escapeCSV(app.lastName),
+        escapeCSV(app.firstName),
+        escapeCSV(formatDate(app.birthdate)),
+        escapeCSV(app.passportNumber),
+        escapeCSV(app.passportIssuingCountry),
+        escapeCSV(formatDate(app.passportExpirationDate)),
+        escapeCSV(formatDate(app.dateOfArrival)),
+        escapeCSV(formatDate(app.dateOfDeparture)),
+        escapeCSV(app.gender),
+        escapeCSV(app.companyName),
+        escapeCSV(app.position),
+        escapeCSV(app.companyMailingAddress1),
+        escapeCSV(app.companyMailingAddress2 || ''),
+        escapeCSV(app.city),
+        escapeCSV(app.state),
+        escapeCSV(app.postalCode),
+        escapeCSV(app.country),
+        escapeCSV(app.phone),
+        escapeCSV(app.fax || ''),
+        escapeCSV(app.hotelName || ''),
+        escapeCSV(app.hotelConfirmation || ''),
+        escapeCSV(app.additionalInformation || ''),
+        escapeCSV(app.meeting?.name || ''),
+        escapeCSV(formatDate(app.entryDate || app.createdAt)),
+        escapeCSV(app.status),
+        escapeCSV(app.letterEmailedDate ? 'true' : 'false'),
+        escapeCSV(formatDate(app.letterEmailedDate)),
+        escapeCSV(app.hardCopyMailedDate ? 'true' : 'false'),
+        escapeCSV(formatDate(app.hardCopyMailedDate)),
+        escapeCSV(app.addressToMailHardCopy || '')
+      ];
+      csvContent += row.join(',') + '\n';
+    }
+
+    // Get meeting name for filename
+    const meetingName = applications[0]?.meeting?.name || 'applications';
+    const sanitizedMeetingName = meetingName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const filename = `${sanitizedMeetingName}_applications_${formatDate(new Date()).replace(/-/g, '')}.csv`;
+
+    // Set headers for CSV download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csvContent);
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({
+      message: 'Error exporting applications',
+      error: error.message
+    });
+  }
+});
+
 // Generate PDF for approved applications - ADMIN ONLY (intentionally restricted for now)
 router.get('/:id/pdf', auth, async (req, res) => {
   console.log('🚀 PDF ROUTE ENTERED - Starting PDF generation process');
