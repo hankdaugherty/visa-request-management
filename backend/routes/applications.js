@@ -273,7 +273,7 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
             phone: cleanPhoneNumber(record.phone),
             fax: cleanPhoneNumber(record.fax || ''),
             hotelName: record.hotelName || '',
-            hotelConfirmation: record.hotelConfirmation || '',
+            hotelConfirmation: cleanPhoneNumber(record.hotelConfirmation || ''),
             additionalInformation: record.additionalInformation || '',
             letterEmailedDate: record.letterEmailedDate ? new Date(record.letterEmailedDate) : undefined,
             hardCopyMailedDate: record.hardCopyMailedDate ? new Date(record.hardCopyMailedDate) : undefined,
@@ -340,14 +340,14 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
           state: record.state,
           postalCode: record.postalCode,
           country: record.country,
-          phone: record.phone,
-          fax: record.fax || '',
+          phone: cleanPhoneNumber(record.phone),
+          fax: cleanPhoneNumber(record.fax || ''),
           meeting: meeting._id,
           
           // Optional fields
           companyMailingAddress2: record.companyMailingAddress2 || '',
           hotelName: record.hotelName || '',
-          hotelConfirmation: record.hotelConfirmation || '',
+          hotelConfirmation: cleanPhoneNumber(record.hotelConfirmation || ''),
           additionalInformation: record.additionalInformation || '',
           
           // Update administrative fields
@@ -523,7 +523,7 @@ router.get('/export', auth, async (req, res) => {
         formatAsText(app.phone),
         formatAsText(app.fax || ''),
         escapeCSV(app.hotelName || ''),
-        escapeCSV(app.hotelConfirmation || ''),
+        formatAsText(app.hotelConfirmation || ''),
         escapeCSV(app.additionalInformation || ''),
         escapeCSV(app.meeting?.name || ''),
         escapeCSV(formatDate(app.entryDate || app.createdAt)),
