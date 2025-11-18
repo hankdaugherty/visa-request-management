@@ -70,18 +70,39 @@ router.get('/', auth, async (req, res) => {
         // If user is admin and specifically requesting all applications with pagination
     if (req.user.role === 'admin' && req.query.admin === 'true') {
       query = {};
+      const hasMeetingFilter = req.query.meetingId;
+      const hasSearchFilter = req.query.search && req.query.search.trim();
+      
       // Meeting filter
-      if (req.query.meetingId) {
+      if (hasMeetingFilter) {
         query.meeting = req.query.meetingId;
       }
+      
       // Search filter - search by firstName, lastName, or email
-      if (req.query.search && req.query.search.trim()) {
+      if (hasSearchFilter) {
         const searchTerm = req.query.search.trim();
-        query.$or = [
-          { firstName: { $regex: searchTerm, $options: 'i' } },
-          { lastName: { $regex: searchTerm, $options: 'i' } },
-          { email: { $regex: searchTerm, $options: 'i' } }
-        ];
+        console.log('Search term received:', searchTerm);
+        const searchConditions = {
+          $or: [
+            { firstName: { $regex: searchTerm, $options: 'i' } },
+            { lastName: { $regex: searchTerm, $options: 'i' } },
+            { email: { $regex: searchTerm, $options: 'i' } }
+          ]
+        };
+        
+        // If we have both meeting and search filters, combine them with $and
+        if (hasMeetingFilter) {
+          query = {
+            $and: [
+              { meeting: req.query.meetingId },
+              searchConditions
+            ]
+          };
+        } else {
+          // Only search filter
+          query = searchConditions;
+        }
+        console.log('Final query with search:', JSON.stringify(query, null, 2));
       }
       // Sorting
       const sortBy = req.query.sortBy || 'status';
