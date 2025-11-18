@@ -97,6 +97,23 @@ export default function AdminApplications() {
     // eslint-disable-next-line
   }, []);
 
+  // Debounced search term for API calls
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+  // Debounce search term to avoid too many API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300); // 300ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Reset to page 1 when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
+
   // Fetch applications when filters change
   useEffect(() => {
     if (!selectedMeetingId) return;
@@ -108,7 +125,8 @@ export default function AdminApplications() {
           currentPage,
           selectedMeetingId,
           backendSortBy,
-          sortDirection
+          sortDirection,
+          debouncedSearchTerm
         );
         setApplications(response.applications);
         setTotalPages(response.pagination.pages);
@@ -119,7 +137,7 @@ export default function AdminApplications() {
       }
     };
     fetchApplications();
-  }, [selectedMeetingId, currentPage, sortBy, sortDirection]);
+  }, [selectedMeetingId, currentPage, sortBy, sortDirection, debouncedSearchTerm]);
 
   // Fetch statistics when meeting changes
   useEffect(() => {
@@ -135,7 +153,7 @@ export default function AdminApplications() {
     fetchStats();
   }, [selectedMeetingId]);
 
-  // Reset to page 1 when meeting or sort changes
+  // Reset to page 1 when meeting or sort changes (but not search - handled separately)
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedMeetingId, sortBy, sortDirection]);
@@ -208,17 +226,6 @@ export default function AdminApplications() {
 
   // Only show auto-selection indicators if the user hasn't manually selected a meeting
   const isAutoSelected = !userHasManuallySelected && nextUpcomingMeeting && selectedMeetingId === nextUpcomingMeeting._id;
-
-  // Filter applications based on search term
-  const filteredApplications = applications.filter(app => {
-    if (!searchTerm) return true;
-    
-    const searchLower = searchTerm.toLowerCase();
-    const fullName = `${app.firstName} ${app.lastName}`.toLowerCase();
-    const email = app.email.toLowerCase();
-    
-    return fullName.includes(searchLower) || email.includes(searchLower);
-  });
 
   const handleDownloadPDF = async (application: Application) => {
     try {
@@ -409,9 +416,9 @@ export default function AdminApplications() {
             className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
         </div>
-        {searchTerm && (
+        {debouncedSearchTerm && (
           <p className="mt-2 text-sm text-gray-600">
-            Showing {filteredApplications.length} of {applications.length} applications for "{searchTerm}"
+            Searching for "{debouncedSearchTerm}"...
           </p>
         )}
       </div>
@@ -444,14 +451,14 @@ export default function AdminApplications() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {filteredApplications.length === 0 ? (
+            {applications.length === 0 ? (
               <tr>
                 <td colSpan={5} className="text-center py-8 text-gray-500">
-                  {searchTerm ? 'No applications found matching your search.' : 'No applications found.'}
+                  {debouncedSearchTerm ? 'No applications found matching your search.' : 'No applications found.'}
                 </td>
               </tr>
             ) : (
-              filteredApplications.map(app => (
+              applications.map(app => (
                 <tr key={app._id} className={getRowStyles(app.status)}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {app.firstName} {app.lastName}

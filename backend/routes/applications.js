@@ -74,6 +74,15 @@ router.get('/', auth, async (req, res) => {
       if (req.query.meetingId) {
         query.meeting = req.query.meetingId;
       }
+      // Search filter - search by firstName, lastName, or email
+      if (req.query.search && req.query.search.trim()) {
+        const searchTerm = req.query.search.trim();
+        query.$or = [
+          { firstName: { $regex: searchTerm, $options: 'i' } },
+          { lastName: { $regex: searchTerm, $options: 'i' } },
+          { email: { $regex: searchTerm, $options: 'i' } }
+        ];
+      }
       // Sorting
       const sortBy = req.query.sortBy || 'status';
       const sortDirection = req.query.sortDirection === 'asc' ? 1 : -1;

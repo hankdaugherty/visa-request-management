@@ -261,11 +261,12 @@ export const applications = {
     });
   },
 
-  getAllForAdmin: async (page = 1, meetingId?: string, sortBy?: string, sortDirection?: string) => {
+  getAllForAdmin: async (page = 1, meetingId?: string, sortBy?: string, sortDirection?: string, search?: string) => {
     let url = `api/applications?admin=true&page=${page}&limit=10`;
     if (meetingId) url += `&meetingId=${meetingId}`;
     if (sortBy) url += `&sortBy=${sortBy}`;
     if (sortDirection) url += `&sortDirection=${sortDirection}`;
+    if (search && search.trim()) url += `&search=${encodeURIComponent(search.trim())}`;
     const response = await apiRequest(url);
     return {
       applications: response.applications || [],
