@@ -196,6 +196,17 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
       });
     });
 
+    // Helper function to clean phone numbers that may have Excel formula format
+    const cleanPhoneNumber = (value) => {
+      if (!value) return value;
+      const str = String(value).trim();
+      // Remove Excel formula format: ="value" -> value
+      if (str.startsWith('="') && str.endsWith('"')) {
+        return str.slice(2, -1).replace(/""/g, '"');
+      }
+      return str;
+    };
+
     // Process each record
     for (const record of records) {
       try {
@@ -233,7 +244,7 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
         
         // Check if application already exists using passport number and meeting
         const existingApplication = await Application.findOne({
-          passportNumber: record.passportNumber,
+          passportNumber: cleanPhoneNumber(record.passportNumber),
           meeting: meeting._id
         });
 
@@ -245,6 +256,7 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
             lastName: record.lastName,
             firstName: record.firstName,
             birthdate: new Date(record.birthdate),
+            passportNumber: cleanPhoneNumber(record.passportNumber),
             passportIssuingCountry: record.passportIssuingCountry,
             passportExpirationDate: new Date(record.passportExpirationDate),
             dateOfArrival: new Date(record.dateOfArrival),
@@ -258,8 +270,8 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
             state: record.state,
             postalCode: record.postalCode,
             country: record.country,
-            phone: record.phone,
-            fax: record.fax || '',
+            phone: cleanPhoneNumber(record.phone),
+            fax: cleanPhoneNumber(record.fax || ''),
             hotelName: record.hotelName || '',
             hotelConfirmation: record.hotelConfirmation || '',
             additionalInformation: record.additionalInformation || '',
@@ -315,7 +327,7 @@ router.post('/import', auth, upload.single('file'), async (req, res) => {
           lastName: record.lastName,
           firstName: record.firstName,
           birthdate: new Date(record.birthdate),
-          passportNumber: record.passportNumber,
+          passportNumber: cleanPhoneNumber(record.passportNumber),
           passportIssuingCountry: record.passportIssuingCountry,
           passportExpirationDate: new Date(record.passportExpirationDate),
           dateOfArrival: new Date(record.dateOfArrival),
@@ -459,6 +471,21 @@ router.get('/export', auth, async (req, res) => {
       return stringValue;
     };
 
+    // Helper function to format numeric fields as text for Excel (prevents scientific notation)
+    // Uses Excel formula format ="" which forces Excel to treat as text
+    const formatAsText = (value) => {
+      if (value === null || value === undefined) return '';
+      const stringValue = String(value).trim();
+      if (!stringValue) return '';
+      // If it looks like a number (digits, +, -, spaces, parentheses), use Excel formula format
+      // This prevents Excel from converting to scientific notation
+      if (/^[\d\+\-\s\(\)]+$/.test(stringValue) && stringValue.length > 0) {
+        // Use Excel formula format: ="value" forces Excel to treat as text
+        return `="${stringValue.replace(/"/g, '""')}"`;
+      }
+      return escapeCSV(value);
+    };
+
     // Helper function to format date as YYYY-MM-DD
     const formatDate = (date) => {
       if (!date) return '';
@@ -479,7 +506,7 @@ router.get('/export', auth, async (req, res) => {
         escapeCSV(app.lastName),
         escapeCSV(app.firstName),
         escapeCSV(formatDate(app.birthdate)),
-        escapeCSV(app.passportNumber),
+        formatAsText(app.passportNumber),
         escapeCSV(app.passportIssuingCountry),
         escapeCSV(formatDate(app.passportExpirationDate)),
         escapeCSV(formatDate(app.dateOfArrival)),
@@ -493,8 +520,8 @@ router.get('/export', auth, async (req, res) => {
         escapeCSV(app.state),
         escapeCSV(app.postalCode),
         escapeCSV(app.country),
-        escapeCSV(app.phone),
-        escapeCSV(app.fax || ''),
+        formatAsText(app.phone),
+        formatAsText(app.fax || ''),
         escapeCSV(app.hotelName || ''),
         escapeCSV(app.hotelConfirmation || ''),
         escapeCSV(app.additionalInformation || ''),
