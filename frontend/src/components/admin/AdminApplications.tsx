@@ -276,9 +276,6 @@ export default function AdminApplications() {
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
-  if (loading) return <div className="p-4">Loading...</div>;
-  if (error) return <div className="p-4 text-red-600">{error}</div>;
-
   return (
     <div className="p-4">
       {/* Stats Boxes */}
@@ -424,41 +421,58 @@ export default function AdminApplications() {
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-              <th
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer select-none"
-                onClick={() => {
-                  if (sortBy === 'date') setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-                  setSortBy('date');
-                }}
-              >
-                Date {sortBy === 'date' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
-              </th>
-              <th
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer select-none"
-                onClick={() => {
-                  if (sortBy === 'status') setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-                  setSortBy('status');
-                }}
-              >
-                Status {sortBy === 'status' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {applications.length === 0 ? (
+        {error && (
+          <div className="p-4 text-red-600 bg-red-50 border-b border-red-200">
+            {error}
+          </div>
+        )}
+        <div className="relative">
+          {loading && (
+            <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+              <div className="flex items-center space-x-2">
+                <svg className="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span className="text-indigo-600">Loading...</span>
+              </div>
+            </div>
+          )}
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <td colSpan={5} className="text-center py-8 text-gray-500">
-                  {debouncedSearchTerm ? 'No applications found matching your search.' : 'No applications found.'}
-                </td>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer select-none"
+                  onClick={() => {
+                    if (sortBy === 'date') setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+                    setSortBy('date');
+                  }}
+                >
+                  Date {sortBy === 'date' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+                </th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer select-none"
+                  onClick={() => {
+                    if (sortBy === 'status') setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+                    setSortBy('status');
+                  }}
+                >
+                  Status {sortBy === 'status' ? (sortDirection === 'asc' ? '▲' : '▼') : ''}
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
-            ) : (
-              applications.map(app => (
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {!loading && applications.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-8 text-gray-500">
+                    {debouncedSearchTerm ? 'No applications found matching your search.' : 'No applications found.'}
+                  </td>
+                </tr>
+              ) : (
+                applications.map(app => (
                 <tr key={app._id} className={getRowStyles(app.status)}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {app.firstName} {app.lastName}
@@ -519,8 +533,9 @@ export default function AdminApplications() {
                 </tr>
               ))
             )}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="mt-4 bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-lg shadow">
